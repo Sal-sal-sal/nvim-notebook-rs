@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Neovim on Linux
+        if: runner.os == 'Linux'
+        run: |
+          curl -fL https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o nvim.tar.gz
+          tar -xzf nvim.tar.gz
+          echo "$PWD/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+      - name: Install Neovim on macOS
+        if: runner.os == 'macOS'
+        run: brew install neovim
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Lint
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Unit and integration tests
+        run: cargo test --locked
+      - name: Build production binary
+        run: cargo build --release --locked
+      - name: Neovim smoke test
+        env:
+          NOTEBOOK_RS_ROOT: ${{ github.workspace }}
+          NOTEBOOK_RS_BIN: ${{ github.workspace }}/target/release/nvim-notebook-rs
+        run: |
+          nvim --headless --clean -u NONE "+lua dofile('tests/nvim_smoke.lua')" +qa!
