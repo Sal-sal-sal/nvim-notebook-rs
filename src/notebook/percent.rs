@@ -73,13 +73,13 @@ pub fn parse(lines: &[String]) -> Result<Vec<Cell>> {
     Ok(cells)
 }
 
-pub fn select(cells: &[Cell], line: usize, all: bool) -> Result<Vec<String>> {
+pub fn select(cells: &[Cell], line: usize, all: bool) -> Result<Vec<Cell>> {
     let selected = cells
         .iter()
         .filter(|cell| {
             cell.kind == "code" && (all || line >= cell.first_line && line <= cell.last_line)
         })
-        .map(|cell| cell.source.clone())
+        .cloned()
         .collect::<Vec<_>>();
     if selected.is_empty() {
         bail!("cursor is outside a Python code cell");
@@ -103,7 +103,10 @@ mod tests {
         .map(str::to_owned);
         let cells = parse(&lines).unwrap();
         assert!(select(&cells, 2, false).is_err());
-        assert_eq!(select(&cells, 4, false).unwrap(), vec!["x = 2\nprint(x)\n"]);
+        assert_eq!(
+            select(&cells, 4, false).unwrap()[0].source,
+            "x = 2\nprint(x)\n"
+        );
     }
 
     #[test]

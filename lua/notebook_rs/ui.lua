@@ -1,5 +1,5 @@
 local client = require("notebook_rs.client")
-local M = {}
+local M = { results = {}, artifacts = {} }
 
 local function report(response)
   if not response.ok then
@@ -20,7 +20,7 @@ local function output(text, failed)
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].swapfile = false
-  vim.bo[buf].filetype = "text"
+  vim.bo[buf].filetype = "markdown"
   local lines = vim.split(text ~= "" and text or "[No output]", "\n", { plain = true })
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
@@ -42,7 +42,8 @@ end
 local function save(buf)
   local path = vim.b[buf].notebook_rs_path
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  client.once({ op = "save", path = path, lines = lines })
+  client.once({ op = "save", path = path, lines = lines, results = vim.tbl_values(M.results[buf] or {}) })
+  M.results[buf] = {}
   vim.bo[buf].modified = false
   vim.notify("Saved " .. vim.fn.fnamemodify(path, ":~"))
 end
@@ -57,6 +58,7 @@ function M.open(path)
   vim.bo[buf].filetype = "python"
   vim.b[buf].notebook_rs_path = absolute
   vim.b[buf].notebook_rs_backend = "local"
+  M.results[buf] = {}
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
   vim.bo[buf].modified = false
   vim.api.nvim_set_current_buf(buf)
@@ -69,6 +71,10 @@ function M.open(path)
       end
     end,
   })
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = buf,
+    callback = function() M.results[buf] = nil end,
+  })
 end
 
 function M.new(path)
@@ -77,16 +83,55 @@ function M.new(path)
   M.open(absolute)
 end
 
+function M.edit(action, kind)
+  local buf = notebook_buffer()
+  local data = client.once({
+    op = "edit",
+    lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    row = vim.api.nvim_win_get_cursor(0)[1],
+    action = action,
+    kind = kind,
+  })
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
+  vim.api.nvim_win_set_cursor(0, { data.cursor, 0 })
+end
+
 function M.run(all)
   local buf = notebook_buffer()
   local line = vim.api.nvim_win_get_cursor(0)[1]
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local backend = vim.b[buf].notebook_rs_backend or "local"
-  client.request({ op = "run", lines = lines, line = line, all = all, backend = backend }, function(response)
+  client.request({ op = "run", lines = lines, line = line, all = all, backend = backend,
+    path = vim.b[buf].notebook_rs_path }, function(response)
     if report(response) then
+      if vim.api.nvim_buf_is_valid(buf) then
+        for _, result in ipairs(response.data.results or {}) do
+          M.results[buf][result.id] = result
+          vim.bo[buf].modified = true
+        end
+      end
+      M.artifacts = response.data.artifacts or {}
       output(response.data.output, not response.data.success)
     end
   end)
+end
+
+function M.restart_local()
+  local buf = notebook_buffer()
+  client.request({ op = "restart_local", path = vim.b[buf].notebook_rs_path }, function(response)
+    if report(response) then
+      vim.notify("Local Python kernel restarted")
+    end
+  end)
+end
+
+function M.open_artifact(index)
+  local path = M.artifacts[tonumber(index) or #M.artifacts]
+  if not path then
+    vim.notify("No image or HTML output from the latest run", vim.log.levels.WARN)
+    return
+  end
+  vim.ui.open(path)
 end
 
 function M.backend(name)

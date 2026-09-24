@@ -45,6 +45,10 @@ Set `NVIM_NOTEBOOK_PYTHON` and `NVIM_NOTEBOOK_COLAB` to override the Python or C
 :NotebookOpen experiment.ipynb
 :NotebookRun
 :NotebookRunAll
+:NotebookCellNew markdown
+:NotebookCellMove up
+:NotebookCellDelete
+:NotebookRestart
 :write
 ```
 
@@ -52,7 +56,9 @@ The notebook buffer uses `# %% [code] id=...` cell markers.
 Markdown and raw cell lines are prefixed with `# `.
 Move the cursor into a code cell before `:NotebookRun`.
 Use `:write` to save edits to the original `.ipynb` file.
+Cell results are held in the buffer until `:write` saves them to the original `.ipynb` file.
 Unchanged cells keep their metadata and outputs; editing a code cell clears its stale output.
+Each notebook has its own local Python process, and `:NotebookRestart` resets that process.
 
 For Colab, authorize in an interactive terminal and select a named session:
 
@@ -62,26 +68,40 @@ For Colab, authorize in an interactive terminal and select a named session:
 :NotebookBackend colab
 :NotebookRun
 :NotebookColabStatus
+:NotebookColabRestart
+:NotebookColabInstall torch numpy
+:NotebookColabUpload data.csv /content/data.csv
+:NotebookColabList /content
+:NotebookColabDownload /content/data.csv copy.csv
+:NotebookColabURL
 :NotebookColabStop
 ```
 
 Use `:NotebookColabConnect training` to select a session that already exists.
 Other commands are `:NotebookColabSessions` and `:NotebookBackend local`.
+If the CLI asks for an authorization code, complete `:NotebookColabLogin` first.
+Enter authorization codes only in that terminal, never in a notebook cell or chat.
 GPU allocation depends on your Colab account and availability.
+For a TPU, use `:NotebookColabNew training TPU:v6e1` or `TPU:v5e1`.
 
-Local Python state is shared by notebooks in one Neovim process.
 Local execution accepts standard Python syntax; IPython magic commands need the Colab backend.
+Interactive `input()` is not supported in the local worker and raises `EOFError` without consuming the worker protocol.
 The worker runs one request at a time, so a long ML cell delays subsequent requests.
 Saving uses a separate short-lived worker and remains available during execution.
-Images and rich HTML outputs are not rendered in this first version; text appears in a bottom output panel.
+Colab text results and tracebacks appear in a bottom output panel.
+Local Matplotlib plots and Colab images and HTML are saved to temporary files; `:NotebookOpenArtifact` opens the latest one, or pass an index such as `:NotebookOpenArtifact 1`.
+Image links in the output panel can render inside Neovim when a compatible Markdown image plugin is installed.
+The installed Colab CLI may exit with code zero for a Python exception, so the extension reads the CLI's output notebook to detect failed cells.
+`RunAll` stops at the first failed cell.
 
 ## Architecture and tests
 
-`src/notebook/` owns notebook parsing and preservation of unchanged cell metadata and outputs.
+`src/notebook/` owns notebook parsing, cell edits, and preservation of unchanged cell metadata and outputs.
 `src/runtime/` owns the persistent local Python process and Colab CLI subprocesses.
 `src/protocol.rs` exposes a line-delimited JSON protocol to the minimal Lua Neovim interface in `lua/notebook_rs/`.
 
-`cargo test` covers notebook round trips, local kernel state, and the worker talking to a fake Colab CLI.
-The headless Neovim smoke test creates a notebook, saves it, and runs two cells with shared Python state.
+`cargo test` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
+The fake CLI exits successfully after a Python error, matching the installed CLI, so tests prove structured error detection.
+The headless Neovim smoke test creates a notebook, saves it, runs two cells with shared state, and edits cell order.
 GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke test on macOS and Linux.
 The Colab test uses a fake CLI so CI never needs account credentials or allocates a paid runtime.

@@ -3,7 +3,10 @@ use std::{fs, path::Path};
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 
-use super::percent::{parse, Cell};
+use super::{
+    percent::{parse, Cell},
+    results::{self, CellResult},
+};
 
 fn source(cell: &Value) -> Result<String> {
     match cell.get("source") {
@@ -96,6 +99,10 @@ fn as_json_cell(cell: &Cell, old: Option<&Value>) -> Result<Value> {
 }
 
 pub fn save(path: &Path, lines: &[String]) -> Result<usize> {
+    save_with_results(path, lines, &[])
+}
+
+pub fn save_with_results(path: &Path, lines: &[String], results: &[CellResult]) -> Result<usize> {
     let parsed = parse(lines)?;
     let mut notebook = if path.exists() {
         read(path)?
@@ -105,7 +112,11 @@ pub fn save(path: &Path, lines: &[String]) -> Result<usize> {
     let cells = parsed
         .iter()
         .enumerate()
-        .map(|(index, cell)| as_json_cell(cell, old_cell(&notebook, &cell.id, index)))
+        .map(|(index, cell)| {
+            let mut saved = as_json_cell(cell, old_cell(&notebook, &cell.id, index))?;
+            results::apply(cell, &mut saved, results);
+            Ok(saved)
+        })
         .collect::<Result<Vec<_>>>()?;
     notebook["cells"] = json!(cells);
     let bytes = serde_json::to_vec_pretty(&notebook)?;
