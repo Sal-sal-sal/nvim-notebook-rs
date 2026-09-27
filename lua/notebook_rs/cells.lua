@@ -1,4 +1,5 @@
 local M = { states = {}, distance_between_cells = 2 }
+local inline = require("notebook_rs.inline")
 local borders = vim.api.nvim_create_namespace("notebook_rs_cells")
 local focus = vim.api.nvim_create_namespace("notebook_rs_focus")
 
@@ -8,9 +9,11 @@ local colors = {
   raw = "NotebookRsRaw",
 }
 
-local function close_cell(buf, row, kind)
+local function close_cell(buf, row, kind, id, lines, first)
+  local virtual = kind == "code" and inline.virtual_lines(buf, id, lines, first, row + 1) or {}
+  virtual[#virtual + 1] = { { "╰" .. string.rep("─", 55), colors[kind] } }
   vim.api.nvim_buf_set_extmark(buf, borders, row, 0, {
-    virt_lines = { { { "╰" .. string.rep("─", 55), colors[kind] } } },
+    virt_lines = virtual,
     priority = 40,
   })
 end
@@ -30,15 +33,19 @@ function M.render(buf)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local count = 0
   local previous_kind
+  local previous_id
+  local previous_row
   for row, line in ipairs(lines) do
     local kind = line:match("^# %%%% %[(%a+)%]")
     if colors[kind] then
       if previous_kind then
-        close_cell(buf, row - 2, previous_kind)
+        close_cell(buf, row - 2, previous_kind, previous_id, lines, previous_row + 1)
       end
       count = count + 1
       previous_kind = kind
       local id = line:match(" id=(%S+)")
+      previous_id = id
+      previous_row = row
       local state = id and M.states[buf] and M.states[buf][id]
       local label = ({ running = "RUNNING", ok = "DONE", error = "ERROR" })[state]
       local title = ("  %d  %s%s  "):format(count, kind:upper(), label and "  " .. label or "")
@@ -63,7 +70,7 @@ function M.render(buf)
     end
   end
   if previous_kind then
-    close_cell(buf, #lines - 1, previous_kind)
+    close_cell(buf, #lines - 1, previous_kind, previous_id, lines, previous_row + 1)
   end
   M.focus(buf)
 end

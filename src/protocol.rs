@@ -79,7 +79,10 @@ impl Worker {
 
     pub fn dispatch(&mut self, request: Request) -> Result<Value> {
         match request {
-            Request::Open { path } => Ok(json!({"lines":notebook::open(Path::new(&path))?})),
+            Request::Open { path } => {
+                let view = notebook::open_view(Path::new(&path))?;
+                Ok(json!({"lines":view.lines,"errors":view.errors}))
+            }
             Request::New { path } => {
                 notebook::create(Path::new(&path))?;
                 Ok(json!({"lines":notebook::open(Path::new(&path))?}))

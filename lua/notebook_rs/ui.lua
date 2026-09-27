@@ -45,6 +45,7 @@ function M.attach(buf, path, is_new)
   M.results[buf] = {}
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
   vim.bo[buf].modified = false
+  require("notebook_rs.inline").attach(buf, data.errors)
   cells.render(buf)
   local group = vim.api.nvim_create_augroup("NotebookRsBuffer" .. buf, { clear = true })
   vim.api.nvim_create_autocmd("BufWriteCmd", {
@@ -62,6 +63,7 @@ function M.attach(buf, path, is_new)
     buffer = buf,
     callback = function()
       M.results[buf] = nil
+      require("notebook_rs.inline").release(buf)
       guard.release(buf)
     end,
   })
@@ -116,6 +118,7 @@ function M.run(all)
     path = vim.b[buf].notebook_rs_path }, function(response)
     if report(response) then
       if vim.api.nvim_buf_is_valid(buf) then
+        require("notebook_rs.inline").update(buf, response.data.results or {})
         cells.finish(buf, response.data.results or {}, response.data.success)
         for _, result in ipairs(response.data.results or {}) do
           M.results[buf][result.id] = result

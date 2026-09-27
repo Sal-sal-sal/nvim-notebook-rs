@@ -71,6 +71,9 @@ Inside a notebook, `<leader>jc` jumps to the next cell and `<leader>kc` jumps to
 Use `<leader>3b` to jump to cell 3, or `<leader>12b` for cell 12; cell numbers start at 1 and include code, Markdown, and raw cells.
 `<leader>rc` or `<leader>rr` runs the current code cell, and `<leader>ra` runs all code cells.
 These mappings are buffer-local and use your Neovim `mapleader` setting.
+Python and Colab tracebacks appear directly below the cell that failed.
+They are virtual lines in Neovim, so they do not become Python source; `:write` stores them as structured notebook outputs.
+Saved errors appear again when the notebook is reopened, and changing a cell clears only its own stale traceback.
 Use `:write` to save edits to the original `.ipynb` file.
 Cell results are held in the buffer until `:write` saves them to the original `.ipynb` file.
 Unchanged cells keep their metadata and outputs; editing a code cell clears its stale output.
@@ -95,6 +98,24 @@ For Colab, authorize in an interactive terminal and select a named session:
 
 Use `:NotebookColabConnect training` to select a session that already exists.
 Other commands are `:NotebookColabSessions` and `:NotebookBackend local`.
+Press `<leader>cc` inside a notebook to choose a Colab action from a menu.
+Direct shortcuts use the same prefix:
+
+| Shortcut | Action |
+| --- | --- |
+| `<leader>ccl` | Log in |
+| `<leader>ccn` | Create a session |
+| `<leader>ccc` | Connect to a session |
+| `<leader>ccs` | Check connection status |
+| `<leader>ccp` | List sessions |
+| `<leader>ccr` | Restart the session |
+| `<leader>ccu` | Get the session URL |
+| `<leader>ccx` | Stop the session |
+| `<leader>ccb` / `<leader>ccL` | Select Colab / local backend |
+| `<leader>cci` | Install packages |
+| `<leader>ccf` | List remote files |
+| `<leader>ccU` / `<leader>ccD` | Upload / download a file |
+
 If the CLI asks for an authorization code, complete `:NotebookColabLogin` first.
 Enter authorization codes only in that terminal, never in a notebook cell or chat.
 GPU allocation depends on your Colab account and availability.
@@ -117,7 +138,7 @@ Local execution accepts standard Python syntax; IPython magic commands need the 
 Interactive `input()` is not supported in the local worker and raises `EOFError` without consuming the worker protocol.
 The worker runs one request at a time, so a long ML cell delays subsequent requests.
 Saving uses a separate short-lived worker and remains available during execution.
-Colab text results and tracebacks appear in a bottom output panel.
+The bottom output panel also shows the full result of each run.
 Local Matplotlib plots and Colab images and HTML are saved to temporary files; `:NotebookOpenArtifact` opens the latest one, or pass an index such as `:NotebookOpenArtifact 1`.
 Image links in the output panel can render inside Neovim when a compatible Markdown image plugin is installed.
 The installed Colab CLI may exit with code zero for a Python exception, so the extension reads the CLI's output notebook to detect failed cells.
@@ -131,6 +152,6 @@ The installed Colab CLI may exit with code zero for a Python exception, so the e
 
 `cargo test` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
 The fake CLI exits successfully after a Python error, matching the installed CLI, so tests prove structured error detection.
-The headless Neovim smoke tests cover execution, cell edits, navigation shortcuts, and numeric cell targets.
+The headless Neovim smoke tests cover execution, cell edits, navigation shortcuts, Colab actions, inline tracebacks, and numeric cell targets.
 GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke tests on macOS and Linux.
 The Colab test uses a fake CLI so CI never needs account credentials or allocates a paid runtime.

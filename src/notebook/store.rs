@@ -8,7 +8,7 @@ use super::{
     results::{self, CellResult},
 };
 
-fn source(cell: &Value) -> Result<String> {
+pub(super) fn source(cell: &Value) -> Result<String> {
     match cell.get("source") {
         Some(Value::String(text)) => Ok(text.clone()),
         Some(Value::Array(lines)) => lines
@@ -24,7 +24,7 @@ fn source(cell: &Value) -> Result<String> {
     }
 }
 
-fn read(path: &Path) -> Result<Value> {
+pub(super) fn read(path: &Path) -> Result<Value> {
     let text = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     let notebook: Value = serde_json::from_str(&text).context("invalid notebook JSON")?;
     if notebook.get("nbformat").and_then(Value::as_u64) != Some(4)
@@ -33,38 +33,6 @@ fn read(path: &Path) -> Result<Value> {
         bail!("expected a Jupyter notebook in nbformat 4");
     }
     Ok(notebook)
-}
-
-fn shown_lines(kind: &str, source: &str) -> Vec<String> {
-    source
-        .split_terminator('\n')
-        .map(|line| match kind {
-            "code" => line.to_owned(),
-            _ if line.is_empty() => "#".to_owned(),
-            _ => format!("# {line}"),
-        })
-        .collect()
-}
-
-pub fn open(path: &Path) -> Result<Vec<String>> {
-    let notebook = read(path)?;
-    let mut lines = Vec::new();
-    for (index, cell) in notebook["cells"].as_array().unwrap().iter().enumerate() {
-        let kind = cell["cell_type"].as_str().context("missing cell_type")?;
-        if !matches!(kind, "code" | "markdown" | "raw") {
-            bail!("unsupported cell type: {kind}");
-        }
-        let id = cell["id"]
-            .as_str()
-            .map(str::to_owned)
-            .unwrap_or_else(|| format!("cell-{}", index + 1));
-        lines.push(format!("# %% [{kind}] id={id}"));
-        lines.extend(shown_lines(kind, &source(cell)?));
-    }
-    if lines.is_empty() {
-        lines.push("# %% [code] id=cell-1".to_owned());
-    }
-    Ok(lines)
 }
 
 fn old_cell<'a>(old: &'a Value, id: &str, index: usize) -> Option<&'a Value> {
@@ -79,7 +47,9 @@ fn as_json_cell(cell: &Cell, old: Option<&Value>) -> Result<Value> {
     let mut result = old.cloned().unwrap_or_else(|| json!({"metadata": {}}));
     let previous_source = old.map(source).transpose()?;
     let unchanged = previous_source.as_ref().is_some_and(|previous| {
-        previous == &cell.source || previous == cell.source.trim_end_matches('\n')
+        previous == &cell.source
+            || (!previous.ends_with('\n')
+                && cell.source.strip_suffix('\n') == Some(previous.as_str()))
     });
     result["cell_type"] = json!(cell.kind);
     result["id"] = json!(cell.id);
@@ -149,6 +119,7 @@ pub fn create(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::notebook::open;
 
     #[test]
     fn round_trip_preserves_metadata_and_unchanged_output() {
@@ -194,5 +165,29 @@ mod tests {
         let saved = read(&path).unwrap();
         assert_eq!(saved["cells"][0]["metadata"]["keep"], true);
         assert_eq!(saved["cells"][1]["outputs"][0]["data"]["text/plain"], "4");
+    }
+
+    #[test]
+    fn adding_a_blank_line_clears_stale_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("blank.ipynb");
+        for source in ["raise ValueError('old')", "raise ValueError('old')\n"] {
+            fs::write(
+                &path,
+                serde_json::to_vec(&json!({
+                    "cells":[{"cell_type":"code","id":"cell-1","metadata":{},
+                        "source":source,"execution_count":1,
+                        "outputs":[{"output_type":"error","ename":"ValueError",
+                            "evalue":"old","traceback":["ValueError: old"]}]}],
+                    "metadata":{},"nbformat":4,"nbformat_minor":5
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+            let mut lines = open(&path).unwrap();
+            lines.push(String::new());
+            save(&path, &lines).unwrap();
+            assert_eq!(read(&path).unwrap()["cells"][0]["outputs"], json!([]));
+        }
     }
 }

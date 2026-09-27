@@ -27,6 +27,7 @@ for message in sys.stdin:
     request = json.loads(message)
     capture = io.StringIO()
     success = True
+    error = None
     images = []
     try:
         with contextlib.redirect_stdout(capture), contextlib.redirect_stderr(capture), no_stdin():
@@ -39,9 +40,10 @@ for message in sys.stdin:
                     print(repr(value))
             else:
                 exec(compile(tree, "<notebook>", "exec"), scope)
-    except BaseException:
+    except BaseException as exc:
         success = False
-        traceback.print_exc(file=capture)
+        error = {"ename": type(exc).__name__, "evalue": str(exc),
+                 "traceback": traceback.format_exception(type(exc), exc, exc.__traceback__)}
     if "matplotlib.pyplot" in sys.modules:
         try:
             with contextlib.redirect_stdout(capture), contextlib.redirect_stderr(capture):
@@ -56,16 +58,18 @@ for message in sys.stdin:
                     if seen_figures.get(number) != digest:
                         images.append(base64.b64encode(content).decode())
                         seen_figures[number] = digest
-        except BaseException:
+        except BaseException as exc:
             success = False
-            traceback.print_exc(file=capture)
-    print("\x1eNVIM_NOTEBOOK_RS_REPLY:" + json.dumps({"success": success, "output": capture.getvalue(), "images": images}), flush=True)
+            error = {"ename": type(exc).__name__, "evalue": str(exc),
+                     "traceback": traceback.format_exception(type(exc), exc, exc.__traceback__)}
+    print("\x1eNVIM_NOTEBOOK_RS_REPLY:" + json.dumps({"success": success, "output": capture.getvalue(), "error": error, "images": images}), flush=True)
 "#;
 
 #[derive(Deserialize)]
 struct Reply {
     success: bool,
     output: String,
+    error: Option<serde_json::Value>,
     images: Vec<String>,
 }
 
@@ -119,13 +123,13 @@ impl Local {
         let output = external + &reply.output;
         let mut outputs = if output.is_empty() {
             Vec::new()
-        } else if reply.success {
-            vec![json!({"output_type":"stream","name":"stdout","text":output})]
         } else {
-            vec![
-                json!({"output_type":"error","ename":"PythonError","evalue":"see traceback","traceback":[output]}),
-            ]
+            vec![json!({"output_type":"stream","name":"stdout","text":output})]
         };
+        if let Some(mut error) = reply.error {
+            error["output_type"] = json!("error");
+            outputs.push(error);
+        }
         outputs.extend(reply.images.into_iter().map(
             |image| json!({"output_type":"display_data","data":{"image/png":image},"metadata":{}}),
         ));
@@ -159,6 +163,8 @@ mod tests {
         let error = local.execute("raise ValueError('boom')").unwrap();
         assert!(!error.success);
         assert!(error.output.contains("ValueError: boom"));
+        assert_eq!(error.outputs[0]["ename"], "ValueError");
+        assert_eq!(error.outputs[0]["evalue"], "boom");
         let input_error = local.execute("input()").unwrap();
         assert!(!input_error.success);
         assert!(input_error.output.contains("EOFError"));
