@@ -1,9 +1,9 @@
-use std::process::{Command, Stdio};
-
 use anyhow::{bail, Context, Result};
 
 use super::{colab_notebook, Execution};
 use crate::notebook::Cell;
+
+mod command;
 
 pub struct Colab {
     executable: String,
@@ -21,28 +21,7 @@ impl Colab {
     }
 
     fn command(&self, args: &[&str]) -> Result<Execution> {
-        let child = Command::new(&self.executable)
-            .args(args)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .with_context(|| format!("starting Colab CLI: {}", self.executable))?;
-        let result = child.wait_with_output()?;
-        let mut output = String::from_utf8_lossy(&result.stdout).into_owned();
-        output.push_str(&String::from_utf8_lossy(&result.stderr));
-        if !result.status.success() && output.to_lowercase().contains("authorization code") {
-            output = format!(
-                "Colab authorization required. Run :NotebookColabLogin, then retry.\n{output}"
-            );
-        }
-        Ok(Execution {
-            success: result.status.success(),
-            output,
-            outputs: Vec::new(),
-            execution_count: serde_json::Value::Null,
-            artifacts: Vec::new(),
-        })
+        command::run(&self.executable, args)
     }
 
     pub fn create(&mut self, session: &str, accelerator: Option<&str>) -> Result<Execution> {
