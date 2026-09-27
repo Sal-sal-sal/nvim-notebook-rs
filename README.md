@@ -39,7 +39,22 @@ The plugin finds the binary in its `target/release` directory.
 Set `vim.g.notebook_rs_bin` to a custom binary path if needed.
 Set `NVIM_NOTEBOOK_PYTHON` and `NVIM_NOTEBOOK_COLAB` to override the Python or Colab CLI executables.
 If another plugin registers `BufReadCmd` for `*.ipynb`, disable its notebook handler so one plugin owns opening and saving these files.
-Configure the visual space between cells in Lua with `require("notebook_rs").setup({ distance_between_cells = 2 })`.
+Configure the notebook in Lua:
+
+```lua
+require("notebook_rs").setup({
+  distance_between_cells = 2,
+  nootbook_hidden_id_line = true,
+  nootbook_result = "nootbook",
+})
+```
+
+`nootbook_hidden_id_line = true` hides `# %% [code] id=...` from the editor without removing it from the notebook.
+Neovim 0.11 and newer conceal the whole line; Neovim 0.10 conceals its text but leaves an empty line.
+Set it to `false` to show the marker lines while editing.
+`nootbook_result` accepts `"nootbook"` for inline cell output, `"window"` for a bottom output window, or `"hidden"` for no displayed result.
+Execution results are still saved to `.ipynb` in every mode.
+The option names intentionally use `nootbook` as shown above.
 
 ## Use
 
@@ -62,6 +77,7 @@ Configure the visual space between cells in Lua with `require("notebook_rs").set
 ```
 
 The notebook buffer uses `# %% [code] id=...` cell markers.
+If a marker is mistyped, for example `}d=` instead of `id=`, execution stops with the source line number instead of treating that code as part of the previous cell.
 Opening an `.ipynb` through a file picker or `:edit` loads the same editable cell view.
 An invalid `.ipynb` opens a read-only error view so an accidental save cannot replace the original file.
 Colored borders separate code, Markdown, and raw cells, and the current cell has an arrow in the sign column.
@@ -76,9 +92,10 @@ Use `<leader>3b` to jump to cell 3, or `<leader>12b` for cell 12; cell numbers s
 The matching commands are `:NotebookCellNewAbove`, `:NotebookCellNewBelow`, and `:NotebookCellDelete`.
 Pass `markdown` or `raw` to either insertion command if you need another cell type.
 These mappings are buffer-local and use your Neovim `mapleader` setting.
-Python and Colab tracebacks appear directly below the cell that failed.
-They are virtual lines in Neovim, so they do not become Python source; `:write` stores them as structured notebook outputs.
-Saved errors appear again when the notebook is reopened, and changing a cell clears only its own stale traceback.
+With the default `nootbook_result = "nootbook"`, Python and Colab output and tracebacks appear below their cells.
+These are virtual lines in Neovim, so they do not become Python source; `:write` stores them as structured notebook outputs.
+Saved output appears again when the notebook is reopened, and changing a cell clears only its own stale output.
+Images and HTML appear as inline placeholders; use `:NotebookOpenArtifact` to open a generated file after a run.
 Use `:write` to save edits to the original `.ipynb` file.
 Cell results are held in the buffer until `:write` saves them to the original `.ipynb` file.
 Unchanged cells keep their metadata and outputs; editing a code cell clears its stale output.
@@ -143,7 +160,8 @@ Local execution accepts standard Python syntax; IPython magic commands need the 
 Interactive `input()` is not supported in the local worker and raises `EOFError` without consuming the worker protocol.
 The worker runs one request at a time, so a long ML cell delays subsequent requests.
 Saving uses a separate short-lived worker and remains available during execution.
-The bottom output panel also shows the full result of each run.
+Set `nootbook_result = "window"` to show the full result of each run in the bottom output panel.
+Set `nootbook_result = "hidden"` to suppress the run output view while keeping notebook results available for saving.
 Local Matplotlib plots and Colab images and HTML are saved to temporary files; `:NotebookOpenArtifact` opens the latest one, or pass an index such as `:NotebookOpenArtifact 1`.
 Image links in the output panel can render inside Neovim when a compatible Markdown image plugin is installed.
 The installed Colab CLI may exit with code zero for a Python exception, so the extension reads the CLI's output notebook to detect failed cells.

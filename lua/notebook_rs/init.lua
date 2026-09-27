@@ -24,16 +24,11 @@ local function attach_safely(ui, args, is_new)
 end
 
 function M.setup(opts)
-  if opts and opts.distance_between_cells ~= nil then
-    local distance = opts.distance_between_cells
-    assert(type(distance) == "number" and distance >= 0 and distance % 1 == 0,
-      "distance_between_cells must be a non-negative integer")
-    local cells = require("notebook_rs.cells")
-    cells.distance_between_cells = distance
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.b[buf].notebook_rs_path then
-        cells.render(buf)
-      end
+  require("notebook_rs.config").update(opts)
+  local cells = require("notebook_rs.cells")
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.b[buf].notebook_rs_path then
+      cells.render(buf)
     end
   end
   if vim.g.notebook_rs_loaded then

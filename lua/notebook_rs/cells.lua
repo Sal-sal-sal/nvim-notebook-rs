@@ -1,7 +1,9 @@
-local M = { states = {}, distance_between_cells = 2 }
+local M = { states = {} }
 local inline = require("notebook_rs.inline")
+local config = require("notebook_rs.config")
 local borders = vim.api.nvim_create_namespace("notebook_rs_cells")
 local focus = vim.api.nvim_create_namespace("notebook_rs_focus")
+local markers = vim.api.nvim_create_namespace("notebook_rs_markers")
 
 local colors = {
   code = "NotebookRsCode",
@@ -18,6 +20,27 @@ local function close_cell(buf, row, kind, id, lines, first)
   })
 end
 
+local function hidden_whole(lines, row)
+  return config.nootbook_hidden_id_line and vim.fn.has("nvim-0.11") == 1
+    and row < #lines and not lines[row + 1]:match("^# %%%% %[")
+end
+
+local function marker_visibility(buf, row, line, whole)
+  if not config.nootbook_hidden_id_line then
+    return
+  end
+  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+    if vim.api.nvim_get_option_value("conceallevel", { win = win }) < 2 then
+      vim.api.nvim_set_option_value("conceallevel", 2, { win = win })
+    end
+    vim.api.nvim_set_option_value("concealcursor", "nivc", { win = win })
+  end
+  local opts = whole
+    and { end_row = row - 1, end_col = #line, conceal_lines = "" }
+    or { end_col = #line, conceal = "" }
+  vim.api.nvim_buf_set_extmark(buf, markers, row - 1, 0, opts)
+end
+
 for kind, target in pairs({ code = "DiagnosticInfo", markdown = "DiagnosticHint", raw = "DiagnosticWarn" }) do
   vim.api.nvim_set_hl(0, colors[kind], { link = target, default = true })
 end
@@ -30,20 +53,20 @@ function M.render(buf)
     return
   end
   vim.api.nvim_buf_clear_namespace(buf, borders, 0, -1)
+  vim.api.nvim_buf_clear_namespace(buf, markers, 0, -1)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local count = 0
   local previous_kind
   local previous_id
   local previous_row
   for row, line in ipairs(lines) do
-    local kind = line:match("^# %%%% %[(%a+)%]")
+    local kind, id = line:match("^# %%%% %[(%a+)%] id=(%S+)$")
     if colors[kind] then
       if previous_kind then
         close_cell(buf, row - 2, previous_kind, previous_id, lines, previous_row + 1)
       end
       count = count + 1
       previous_kind = kind
-      local id = line:match(" id=(%S+)")
       previous_id = id
       previous_row = row
       local state = id and M.states[buf] and M.states[buf][id]
@@ -54,18 +77,25 @@ function M.render(buf)
       local rule = "╭─" .. title .. string.rep("─", math.max(4, 52 - vim.fn.strdisplaywidth(title)))
       local virtual = {}
       if count > 1 then
-        for _ = 1, M.distance_between_cells do
+        for _ = 1, config.distance_between_cells do
           virtual[#virtual + 1] = { { " ", "Normal" } }
         end
       end
       virtual[#virtual + 1] = { { rule, color } }
-      vim.api.nvim_buf_set_extmark(buf, borders, row - 1, 0, {
+      local whole = hidden_whole(lines, row)
+      vim.api.nvim_buf_set_extmark(buf, borders, whole and row or row - 1, 0, {
         virt_lines = virtual,
         virt_lines_above = true,
         line_hl_group = color,
         sign_text = "▌",
         sign_hl_group = color,
         priority = 40,
+      })
+      marker_visibility(buf, row, line, whole)
+    elseif line:match("^# %%%% %[") then
+      vim.api.nvim_buf_set_extmark(buf, borders, row - 1, 0, {
+        virt_lines = { { { "INVALID CELL MARKER: expected id=...", "NotebookRsFailed" } } },
+        virt_lines_above = true,
       })
     end
   end
@@ -80,7 +110,7 @@ function M.begin(buf, lines, cursor, all)
   M.states[buf] = states
   local selected
   for row, line in ipairs(lines) do
-    local kind, id = line:match("^# %%%% %[(%a+)%] id=(%S+)")
+    local kind, id = line:match("^# %%%% %[(%a+)%] id=(%S+)$")
     if kind then
       if all and kind == "code" then
         states[id] = "running"
@@ -123,11 +153,12 @@ function M.focus(buf)
     return
   end
   local cursor = vim.api.nvim_win_get_cursor(0)[1]
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, cursor, false)
-  for row = #lines, 1, -1 do
-    local kind = lines[row]:match("^# %%%% %[(%a+)%]")
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  for row = math.min(#lines, cursor), 1, -1 do
+    local kind = lines[row]:match("^# %%%% %[(%a+)%] id=%S+$")
     if colors[kind] then
-      vim.api.nvim_buf_set_extmark(buf, focus, row - 1, 0, {
+      local anchor = hidden_whole(lines, row) and row or row - 1
+      vim.api.nvim_buf_set_extmark(buf, focus, anchor, 0, {
         line_hl_group = "NotebookRsActiveCell",
         sign_text = "▶",
         sign_hl_group = colors[kind],

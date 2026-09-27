@@ -50,3 +50,5 @@ jobs:
           nvim --headless --clean -u NONE -l tests/nvim_navigation.lua
           nvim --headless --clean -u NONE -l tests/nvim_cell_keys.lua
           nvim --headless --clean -u NONE -l tests/nvim_inline.lua
+          nvim --headless --clean -u NONE -l tests/nvim_display.lua
+          nvim --headless --clean -u NONE -l tests/nvim_regressions.lua

@@ -1,19 +1,10 @@
-local M = { errors = {} }
-
-local function has_error(outputs)
-  for _, output in ipairs(outputs or {}) do
-    if output.output_type == "error" then
-      return true
-    end
-  end
-  return false
-end
+local M = { records = {} }
 
 local function remember(buf, results)
-  local records = M.errors[buf] or {}
-  M.errors[buf] = records
+  local records = M.records[buf] or {}
+  M.records[buf] = records
   for _, result in ipairs(results or {}) do
-    if has_error(result.outputs) then
+    if #(result.outputs or {}) > 0 then
       records[result.id] = { source = result.source, outputs = result.outputs }
     else
       records[result.id] = nil
@@ -21,9 +12,9 @@ local function remember(buf, results)
   end
 end
 
-function M.attach(buf, errors)
-  M.errors[buf] = {}
-  remember(buf, errors)
+function M.attach(buf, results)
+  M.records[buf] = {}
+  remember(buf, results)
 end
 
 function M.update(buf, results)
@@ -31,7 +22,7 @@ function M.update(buf, results)
 end
 
 function M.release(buf)
-  M.errors[buf] = nil
+  M.records[buf] = nil
 end
 
 local function source_matches(source, lines, first, last)
@@ -57,8 +48,33 @@ local function traceback(output)
   return trace:gsub("\27%[[%d;]*[A-Za-z]", ""):gsub("\r", "")
 end
 
+local function output_lines(output)
+  if output.output_type == "error" then
+    return "ERROR " .. (output.ename or "Python"), traceback(output), "NotebookRsTraceback"
+  end
+  if output.output_type == "stream" then
+    local value = output.text
+    return "OUTPUT", type(value) == "table" and table.concat(value) or value or "", "NotebookRsOutput"
+  end
+  local data = output.data or {}
+  local value = data["text/plain"]
+  if type(value) == "table" then
+    value = table.concat(value)
+  end
+  if data["image/png"] then
+    value = (value or "") .. "\n[Image output saved in notebook]"
+  end
+  if data["text/html"] then
+    value = (value or "") .. "\n[HTML output saved in notebook]"
+  end
+  return "RESULT", value or "", "NotebookRsOutput"
+end
+
 function M.virtual_lines(buf, id, lines, first, last)
-  local records = M.errors[buf]
+  if require("notebook_rs.config").nootbook_result ~= "nootbook" then
+    return {}
+  end
+  local records = M.records[buf]
   local record = records and records[id]
   if not record then
     return {}
@@ -69,20 +85,21 @@ function M.virtual_lines(buf, id, lines, first, last)
   end
   local virtual = {}
   for _, output in ipairs(record.outputs) do
-    if output.output_type == "error" then
-      virtual[#virtual + 1] = { { "├─ ERROR " .. (output.ename or "Python") .. " ─", "NotebookRsFailed" } }
-      local parts = vim.split(traceback(output), "\n", { plain = true })
-      if parts[#parts] == "" then
-        table.remove(parts)
-      end
-      for _, line in ipairs(parts) do
-        virtual[#virtual + 1] = { { "│ " .. line, "NotebookRsTraceback" } }
-      end
+    local title, value, color = output_lines(output)
+    virtual[#virtual + 1] = { { "├─ " .. title .. " ─", output.output_type == "error"
+      and "NotebookRsFailed" or "NotebookRsOutput" } }
+    local parts = vim.split(value, "\n", { plain = true })
+    if parts[#parts] == "" then
+      table.remove(parts)
+    end
+    for _, line in ipairs(parts) do
+      virtual[#virtual + 1] = { { "│ " .. line, color } }
     end
   end
   return virtual
 end
 
 vim.api.nvim_set_hl(0, "NotebookRsTraceback", { link = "DiagnosticError", default = true })
+vim.api.nvim_set_hl(0, "NotebookRsOutput", { link = "Normal", default = true })
 
 return M

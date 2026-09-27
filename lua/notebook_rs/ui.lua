@@ -45,7 +45,7 @@ function M.attach(buf, path, is_new)
   M.results[buf] = {}
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
   vim.bo[buf].modified = false
-  require("notebook_rs.inline").attach(buf, data.errors)
+  require("notebook_rs.inline").attach(buf, data.results)
   cells.render(buf)
   local group = vim.api.nvim_create_augroup("NotebookRsBuffer" .. buf, { clear = true })
   vim.api.nvim_create_autocmd("BufWriteCmd", {
@@ -126,7 +126,9 @@ function M.run(all)
         end
       end
       M.artifacts = response.data.artifacts or {}
-      panel.show(response.data.output, not response.data.success)
+      if require("notebook_rs.config").nootbook_result == "window" then
+        panel.show(response.data.output, not response.data.success)
+      end
       if backend == "colab" then
         status.execution_result(response.data)
       end
@@ -195,5 +197,4 @@ function M.login()
   vim.fn.termopen({ executable, "sessions" })
   vim.cmd("startinsert")
 end
-
 return M

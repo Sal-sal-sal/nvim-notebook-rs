@@ -50,6 +50,11 @@ pub fn parse(lines: &[String]) -> Result<Vec<Cell>> {
                 first_line: index + 1,
                 last_line: index + 1,
             });
+        } else if line.starts_with("# %% [") {
+            bail!(
+                "invalid cell marker on line {}: expected '# %% [code|markdown|raw] id=...'",
+                index + 1
+            );
         } else if let Some(cell) = current.as_mut() {
             cell.source.push_str(&source_line(&cell.kind, line)?);
             cell.source.push('\n');
@@ -113,5 +118,20 @@ mod tests {
     fn rejects_duplicate_ids() {
         let lines = ["# %% [code] id=c", "x = 1", "# %% [code] id=c"].map(str::to_owned);
         assert!(parse(&lines).is_err());
+    }
+
+    #[test]
+    fn rejects_malformed_third_marker_instead_of_running_second_cell() {
+        let lines = [
+            "# %% [code] id=first",
+            "print('first')",
+            "# %% [code] id=second",
+            "print('second')",
+            "# %% [code] }d=third",
+            "print('third')",
+        ]
+        .map(str::to_owned);
+        let error = parse(&lines).unwrap_err().to_string();
+        assert!(error.contains("line 5") && error.contains("id="));
     }
 }

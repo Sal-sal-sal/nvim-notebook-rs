@@ -2,7 +2,7 @@ local root = assert(vim.env.NOTEBOOK_RS_ROOT)
 vim.opt.rtp:append(root)
 vim.g.notebook_rs_bin = vim.env.NOTEBOOK_RS_BIN or (root .. "/target/debug/nvim-notebook-rs")
 vim.env.NVIM_NOTEBOOK_COLAB = root .. "/tests/fake_colab.py"
-require("notebook_rs").setup()
+require("notebook_rs").setup({ nootbook_result = "window" })
 
 local path = vim.fn.tempname() .. ".ipynb"
 vim.cmd("NotebookNew " .. vim.fn.fnameescape(path))

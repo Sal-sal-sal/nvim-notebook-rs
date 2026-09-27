@@ -5,7 +5,7 @@ local kinds = { code = true, markdown = true, raw = true }
 local function markers(buf)
   local rows = {}
   for row, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
-    if kinds[line:match("^# %%%% %[(%a+)%]")] then
+    if kinds[line:match("^# %%%% %[(%a+)%] id=%S+$")] then
       rows[#rows + 1] = row
     end
   end

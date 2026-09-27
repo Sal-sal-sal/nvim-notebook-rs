@@ -7,7 +7,19 @@ use super::store;
 
 pub struct OpenView {
     pub lines: Vec<String>,
-    pub errors: Vec<Value>,
+    pub results: Vec<Value>,
+}
+
+fn display_output(output: &Value) -> Value {
+    let mut shown = output.clone();
+    if let Some(data) = shown.get_mut("data").and_then(Value::as_object_mut) {
+        for format in ["image/png", "text/html"] {
+            if data.contains_key(format) {
+                data.insert(format.to_owned(), Value::Bool(true));
+            }
+        }
+    }
+    shown
 }
 
 fn shown_lines(kind: &str, source: &str) -> Vec<String> {
@@ -24,7 +36,7 @@ fn shown_lines(kind: &str, source: &str) -> Vec<String> {
 pub fn open_view(path: &Path) -> Result<OpenView> {
     let notebook = store::read(path)?;
     let mut lines = Vec::new();
-    let mut errors = Vec::new();
+    let mut results = Vec::new();
     for (index, cell) in notebook["cells"].as_array().unwrap().iter().enumerate() {
         let kind = cell["cell_type"].as_str().context("missing cell_type")?;
         if !matches!(kind, "code" | "markdown" | "raw") {
@@ -38,22 +50,21 @@ pub fn open_view(path: &Path) -> Result<OpenView> {
         lines.push(format!("# %% [{kind}] id={id}"));
         lines.extend(shown_lines(kind, &source));
         if kind == "code" {
-            let failed = cell["outputs"]
+            let outputs = cell["outputs"]
                 .as_array()
                 .into_iter()
                 .flatten()
-                .filter(|output| output["output_type"] == "error")
-                .cloned()
+                .map(display_output)
                 .collect::<Vec<_>>();
-            if !failed.is_empty() {
-                errors.push(json!({"id":id,"source":source,"outputs":failed}));
+            if !outputs.is_empty() {
+                results.push(json!({"id":id,"source":source,"outputs":outputs}));
             }
         }
     }
     if lines.is_empty() {
         lines.push("# %% [code] id=cell-1".to_owned());
     }
-    Ok(OpenView { lines, errors })
+    Ok(OpenView { lines, results })
 }
 
 pub fn open(path: &Path) -> Result<Vec<String>> {

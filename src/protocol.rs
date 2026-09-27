@@ -81,7 +81,7 @@ impl Worker {
         match request {
             Request::Open { path } => {
                 let view = notebook::open_view(Path::new(&path))?;
-                Ok(json!({"lines":view.lines,"errors":view.errors}))
+                Ok(json!({"lines":view.lines,"results":view.results}))
             }
             Request::New { path } => {
                 notebook::create(Path::new(&path))?;
