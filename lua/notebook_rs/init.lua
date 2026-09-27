@@ -3,6 +3,7 @@ local M = {}
 local function attach_safely(ui, args, is_new)
   local ok, err = pcall(ui.attach, args.buf, args.file, is_new)
   if ok then
+    require("notebook_rs.navigation").attach(args.buf)
     return
   end
   local buf = args.buf
@@ -63,6 +64,10 @@ function M.setup(opts)
   command("NotebookNew", function(opts) ui.new(opts.args) end, { nargs = 1, complete = "file" })
   command("NotebookRun", function() ui.run(false) end, {})
   command("NotebookRunAll", function() ui.run(true) end, {})
+  local navigation = require("notebook_rs.navigation")
+  command("NotebookCellNext", function() navigation.relative(1) end, {})
+  command("NotebookCellPrev", function() navigation.relative(-1) end, {})
+  command("NotebookCellGoto", function(opts) navigation.go_to(opts.args) end, { nargs = 1 })
   command("NotebookRestart", ui.restart_local, {})
   command("NotebookCellNew", function(opts) ui.edit("insert", opts.args ~= "" and opts.args or "code") end, {
     nargs = "?",

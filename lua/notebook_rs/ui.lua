@@ -103,6 +103,7 @@ function M.edit(action, kind)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
   vim.api.nvim_win_set_cursor(0, { data.cursor, 0 })
   cells.reset(buf)
+  require("notebook_rs.navigation").refresh(buf)
 end
 
 function M.run(all)

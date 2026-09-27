@@ -46,4 +46,5 @@ jobs:
           NOTEBOOK_RS_ROOT: ${{ github.workspace }}
           NOTEBOOK_RS_BIN: ${{ github.workspace }}/target/release/nvim-notebook-rs
         run: |
-          nvim --headless --clean -u NONE "+lua dofile('tests/nvim_smoke.lua')" +qa!
+          nvim --headless --clean -u NONE -l tests/nvim_smoke.lua
+          nvim --headless --clean -u NONE -l tests/nvim_navigation.lua

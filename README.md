@@ -49,6 +49,9 @@ Configure the visual space between cells in Lua with `require("notebook_rs").set
 :edit experiment.ipynb
 :NotebookRun
 :NotebookRunAll
+:NotebookCellNext
+:NotebookCellPrev
+:NotebookCellGoto 3
 :NotebookCellNew markdown
 :NotebookCellMove up
 :NotebookCellDelete
@@ -64,6 +67,10 @@ Two virtual blank lines separate cells by default; they do not change the saved 
 Code cell borders show `RUNNING`, `DONE`, or `ERROR` during execution.
 Markdown and raw cell lines are prefixed with `# `.
 Move the cursor into a code cell before `:NotebookRun`.
+Inside a notebook, `<leader>jc` jumps to the next cell and `<leader>kc` jumps to the previous one.
+Use `<leader>3b` to jump to cell 3, or `<leader>12b` for cell 12; cell numbers start at 1 and include code, Markdown, and raw cells.
+`<leader>rc` or `<leader>rr` runs the current code cell, and `<leader>ra` runs all code cells.
+These mappings are buffer-local and use your Neovim `mapleader` setting.
 Use `:write` to save edits to the original `.ipynb` file.
 Cell results are held in the buffer until `:write` saves them to the original `.ipynb` file.
 Unchanged cells keep their metadata and outputs; editing a code cell clears its stale output.
@@ -124,6 +131,6 @@ The installed Colab CLI may exit with code zero for a Python exception, so the e
 
 `cargo test` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
 The fake CLI exits successfully after a Python error, matching the installed CLI, so tests prove structured error detection.
-The headless Neovim smoke test creates a notebook, saves it, runs two cells with shared state, and edits cell order.
-GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke test on macOS and Linux.
+The headless Neovim smoke tests cover execution, cell edits, navigation shortcuts, and numeric cell targets.
+GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke tests on macOS and Linux.
 The Colab test uses a fake CLI so CI never needs account credentials or allocates a paid runtime.
