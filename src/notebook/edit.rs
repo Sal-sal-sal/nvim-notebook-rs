@@ -30,9 +30,7 @@ fn marker(kind: &str) -> Result<String> {
     Ok(format!("# %% [{kind}] id=cell-{nanos:x}-{sequence:x}"))
 }
 
-pub fn insert(lines: &[String], row: usize, kind: &str) -> Result<Edit> {
-    let cells = parse(lines)?;
-    let at = cells[current(&cells, row)?].last_line;
+fn insert_at(lines: &[String], at: usize, kind: &str) -> Result<Edit> {
     let mut edited = lines.to_vec();
     let blank = if kind == "code" { "" } else { "#" };
     edited.splice(at..at, [marker(kind)?, blank.to_owned()]);
@@ -40,6 +38,16 @@ pub fn insert(lines: &[String], row: usize, kind: &str) -> Result<Edit> {
         lines: edited,
         cursor: at + 2,
     })
+}
+
+pub fn insert(lines: &[String], row: usize, kind: &str) -> Result<Edit> {
+    let cells = parse(lines)?;
+    insert_at(lines, cells[current(&cells, row)?].last_line, kind)
+}
+
+pub fn insert_above(lines: &[String], row: usize, kind: &str) -> Result<Edit> {
+    let cells = parse(lines)?;
+    insert_at(lines, cells[current(&cells, row)?].first_line - 1, kind)
 }
 
 pub fn delete(lines: &[String], row: usize) -> Result<Edit> {
@@ -99,5 +107,21 @@ mod tests {
         assert_eq!(cells[1].source, "x + 1\n");
         let deleted = delete(&moved.lines, moved.cursor).unwrap();
         assert_eq!(parse(&deleted.lines).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn inserts_above_first_and_second_cells() {
+        let lines = ["# %% [code] id=a", "x = 1", "# %% [code] id=b", "x + 1"].map(str::to_owned);
+        let first = insert_above(&lines, 2, "code").unwrap();
+        let cells = parse(&first.lines).unwrap();
+        assert_eq!(first.cursor, 2);
+        assert_eq!(cells[1].id, "a");
+        assert_eq!(cells[2].id, "b");
+        let middle = insert_above(&lines, 4, "markdown").unwrap();
+        let cells = parse(&middle.lines).unwrap();
+        assert_eq!(middle.cursor, 4);
+        assert_eq!(cells[0].id, "a");
+        assert_eq!(cells[1].kind, "markdown");
+        assert_eq!(cells[2].id, "b");
     }
 }

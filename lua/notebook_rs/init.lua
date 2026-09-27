@@ -73,6 +73,14 @@ function M.setup(opts)
     nargs = "?",
     complete = function() return { "code", "markdown", "raw" } end,
   })
+  command("NotebookCellNewAbove", function(opts) ui.edit("insert_above", opts.args ~= "" and opts.args or "code") end, {
+    nargs = "?",
+    complete = function() return { "code", "markdown", "raw" } end,
+  })
+  command("NotebookCellNewBelow", function(opts) ui.edit("insert", opts.args ~= "" and opts.args or "code") end, {
+    nargs = "?",
+    complete = function() return { "code", "markdown", "raw" } end,
+  })
   command("NotebookCellDelete", function() ui.edit("delete") end, {})
   command("NotebookCellMove", function(opts) ui.edit(opts.args) end, {
     nargs = 1,

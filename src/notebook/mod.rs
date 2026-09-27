@@ -4,7 +4,7 @@ mod results;
 mod store;
 mod view;
 
-pub use edit::{delete, insert, move_cell};
+pub use edit::{delete, insert, insert_above, move_cell};
 pub use percent::{parse, select, Cell};
 pub use results::CellResult;
 pub use store::{create, save_with_results};

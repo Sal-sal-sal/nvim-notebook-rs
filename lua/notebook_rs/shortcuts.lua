@@ -62,6 +62,12 @@ local function command(op)
 end
 
 local actions = {
+  { key = "a", label = "Add code cell above", group = "Notebook",
+    run = function() vim.cmd.NotebookCellNewAbove() end },
+  { key = "b", label = "Add code cell below", group = "Notebook",
+    run = function() vim.cmd.NotebookCellNewBelow() end },
+  { key = "x", label = "Delete cell", group = "Notebook",
+    run = function() vim.cmd.NotebookCellDelete() end },
   { key = "l", label = "Log in", run = ui.login },
   { key = "n", label = "New session", run = create },
   { key = "c", label = "Connect to session", run = connect },
@@ -69,8 +75,8 @@ local actions = {
   { key = "p", label = "List sessions", run = command("colab_sessions") },
   { key = "r", label = "Restart session", run = command("colab_restart") },
   { key = "u", label = "Open session URL", run = command("colab_url") },
-  { key = "x", label = "Stop session", run = command("colab_stop") },
-  { key = "b", label = "Use Colab backend", run = function() ui.backend("colab") end },
+  { key = "X", label = "Stop session", run = command("colab_stop") },
+  { key = "B", label = "Use Colab backend", run = function() ui.backend("colab") end },
   { key = "L", label = "Use local backend", run = function() ui.backend("local") end },
   { key = "i", label = "Install packages", run = install },
   { key = "f", label = "List remote files", run = list_files },
@@ -80,8 +86,8 @@ local actions = {
 
 function M.open()
   vim.ui.select(actions, {
-    prompt = "Colab connections and tools",
-    format_item = function(item) return item.key .. "  " .. item.label end,
+    prompt = "Notebook cells and Colab connections",
+    format_item = function(item) return item.key .. "  " .. (item.group or "Colab") .. ": " .. item.label end,
   }, function(item)
     if item then
       item.run()
@@ -90,11 +96,11 @@ function M.open()
 end
 
 function M.attach(buf)
-  vim.keymap.set("n", "<leader>cc", M.open, { buffer = buf, desc = "Colab: connections and tools" })
+  vim.keymap.set("n", "<leader>cc", M.open, { buffer = buf, desc = "Notebook cells and Colab connections" })
   for _, item in ipairs(actions) do
     vim.keymap.set("n", "<leader>cc" .. item.key, item.run, {
       buffer = buf,
-      desc = "Colab: " .. item.label,
+      desc = (item.group or "Colab") .. ": " .. item.label,
     })
   end
 end

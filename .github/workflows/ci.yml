@@ -48,4 +48,5 @@ jobs:
         run: |
           nvim --headless --clean -u NONE -l tests/nvim_smoke.lua
           nvim --headless --clean -u NONE -l tests/nvim_navigation.lua
+          nvim --headless --clean -u NONE -l tests/nvim_cell_keys.lua
           nvim --headless --clean -u NONE -l tests/nvim_inline.lua

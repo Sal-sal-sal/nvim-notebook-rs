@@ -103,6 +103,9 @@ impl Worker {
             } => {
                 let edited = match action.as_str() {
                     "insert" => notebook::insert(&lines, row, kind.as_deref().unwrap_or("code"))?,
+                    "insert_above" => {
+                        notebook::insert_above(&lines, row, kind.as_deref().unwrap_or("code"))?
+                    }
                     "delete" => notebook::delete(&lines, row)?,
                     "up" | "down" => notebook::move_cell(&lines, row, &action)?,
                     _ => bail!("unknown cell edit action: {action}"),

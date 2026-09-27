@@ -78,7 +78,7 @@ function M.refresh(buf)
 end
 
 function M.attach(buf)
-  require("notebook_rs.colab_keys").attach(buf)
+  require("notebook_rs.shortcuts").attach(buf)
   local maps = {
     { "<leader>jc", function() M.relative(1) end, "Notebook: next cell" },
     { "<leader>kc", function() M.relative(-1) end, "Notebook: previous cell" },

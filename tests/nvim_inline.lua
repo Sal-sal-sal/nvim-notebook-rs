@@ -80,16 +80,22 @@ local cleared = vim.json.decode(table.concat(vim.fn.readfile(path), "\n"))
 assert(vim.tbl_isempty(cleared.cells[2].outputs), "saved notebook kept a stale traceback")
 
 local chosen = false
-for _, suffix in ipairs({ "l", "n", "c", "s", "p", "r", "u", "x", "b", "L", "i", "f", "U", "D" }) do
+for _, suffix in ipairs({ "l", "n", "c", "s", "p", "r", "u", "X", "B", "L", "i", "f", "U", "D" }) do
   assert(not vim.tbl_isempty(vim.fn.maparg(" cc" .. suffix, "n", false, true)),
     "Colab action shortcut is missing: " .. suffix)
 end
 local original_select, original_input = vim.ui.select, vim.ui.input
 vim.ui.select = function(items, opts, callback)
   assert(opts.prompt:find("Colab", 1, true))
+  local cell_actions = {}
   for _, item in ipairs(items) do
+    if item.group == "Notebook" then
+      cell_actions[item.key] = true
+    end
     if item.key == "c" then
       chosen = true
+      assert(cell_actions.a and cell_actions.b and cell_actions.x,
+        "cell actions are missing from the <leader>cc menu")
       callback(item)
       return
     end
@@ -105,7 +111,7 @@ assert(chosen, "<leader>cc did not open the Colab actions")
 assert(vim.wait(5000, function() return require("notebook_rs.status").state == "connected" end, 20),
   "Colab connection menu did not connect through the CLI")
 vim.ui.select, vim.ui.input = original_select, original_input
-press(" ccb")
+press(" ccB")
 assert(vim.b.notebook_rs_backend == "colab", "Colab backend shortcut did not work")
 vim.api.nvim_buf_set_lines(buf, 1, 2, false, { "raise ValueError('remote boom')" })
 vim.cmd("doautocmd TextChanged")
@@ -114,7 +120,7 @@ vim.cmd("NotebookRun")
 assert(vim.wait(5000, function()
   return inline_text():find("ValueError: bad cell", 1, true) ~= nil
 end, 20), "Colab CLI traceback is missing below its cell")
-press(" ccx")
+press(" ccX")
 assert(vim.wait(5000, function() return require("notebook_rs.status").state == "disconnected" end, 20),
   "Colab stop shortcut did not disconnect")
 press(" ccL")

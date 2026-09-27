@@ -53,6 +53,8 @@ Configure the visual space between cells in Lua with `require("notebook_rs").set
 :NotebookCellPrev
 :NotebookCellGoto 3
 :NotebookCellNew markdown
+:NotebookCellNewAbove
+:NotebookCellNewBelow
 :NotebookCellMove up
 :NotebookCellDelete
 :NotebookRestart
@@ -70,6 +72,9 @@ Move the cursor into a code cell before `:NotebookRun`.
 Inside a notebook, `<leader>jc` jumps to the next cell and `<leader>kc` jumps to the previous one.
 Use `<leader>3b` to jump to cell 3, or `<leader>12b` for cell 12; cell numbers start at 1 and include code, Markdown, and raw cells.
 `<leader>rc` or `<leader>rr` runs the current code cell, and `<leader>ra` runs all code cells.
+`<leader>cca` inserts a code cell above the current cell, `<leader>ccb` inserts one below it, and `<leader>ccx` deletes the current cell.
+The matching commands are `:NotebookCellNewAbove`, `:NotebookCellNewBelow`, and `:NotebookCellDelete`.
+Pass `markdown` or `raw` to either insertion command if you need another cell type.
 These mappings are buffer-local and use your Neovim `mapleader` setting.
 Python and Colab tracebacks appear directly below the cell that failed.
 They are virtual lines in Neovim, so they do not become Python source; `:write` stores them as structured notebook outputs.
@@ -98,7 +103,7 @@ For Colab, authorize in an interactive terminal and select a named session:
 
 Use `:NotebookColabConnect training` to select a session that already exists.
 Other commands are `:NotebookColabSessions` and `:NotebookBackend local`.
-Press `<leader>cc` inside a notebook to choose a Colab action from a menu.
+Press `<leader>cc` inside a notebook to choose a cell or Colab action from a menu.
 Direct shortcuts use the same prefix:
 
 | Shortcut | Action |
@@ -110,8 +115,8 @@ Direct shortcuts use the same prefix:
 | `<leader>ccp` | List sessions |
 | `<leader>ccr` | Restart the session |
 | `<leader>ccu` | Get the session URL |
-| `<leader>ccx` | Stop the session |
-| `<leader>ccb` / `<leader>ccL` | Select Colab / local backend |
+| `<leader>ccX` | Stop the session |
+| `<leader>ccB` / `<leader>ccL` | Select Colab / local backend |
 | `<leader>cci` | Install packages |
 | `<leader>ccf` | List remote files |
 | `<leader>ccU` / `<leader>ccD` | Upload / download a file |
@@ -152,6 +157,6 @@ The installed Colab CLI may exit with code zero for a Python exception, so the e
 
 `cargo test` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
 The fake CLI exits successfully after a Python error, matching the installed CLI, so tests prove structured error detection.
-The headless Neovim smoke tests cover execution, cell edits, navigation shortcuts, Colab actions, inline tracebacks, and numeric cell targets.
+The headless Neovim smoke tests cover execution, cell edits, insertion above and below, navigation shortcuts, Colab actions, inline tracebacks, and numeric cell targets.
 GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke tests on macOS and Linux.
 The Colab test uses a fake CLI so CI never needs account credentials or allocates a paid runtime.
