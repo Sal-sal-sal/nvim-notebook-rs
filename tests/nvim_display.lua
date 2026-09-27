@@ -84,14 +84,24 @@ assert(not pcall(plugin.setup, { nootbook_result = "other" }))
 assert(not pcall(plugin.setup, { nootbook_hidden_id_line = "true" }))
 assert(config.nootbook_result == "hidden" and config.nootbook_hidden_id_line)
 
-vim.api.nvim_buf_set_lines(buf, 4, 5, false, { "# %% [code] }d=third" })
-require("notebook_rs.cells").render(buf)
-assert(inline_text():find("INVALID CELL MARKER", 1, true), "bad marker is not visible")
-local ok, err = pcall(require("notebook_rs.client").once, {
-  op = "run", lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false),
-  line = 6, all = false, backend = "local", path = path,
-})
-assert(not ok and tostring(err):find("invalid cell marker on line 5", 1, true),
-  "bad third marker was executed as part of the second cell")
+for _, case in ipairs({
+  { row = 1, marker = "# %% [code] id=" },
+  { row = 3, marker = "# %% [unknown] id=bad" },
+  { row = 5, marker = "# %% [code] }d=bad" },
+  { row = 3, marker = "# %% [code]  id=bad" },
+}) do
+  local original = vim.api.nvim_buf_get_lines(buf, case.row - 1, case.row, false)[1]
+  vim.api.nvim_buf_set_lines(buf, case.row - 1, case.row, false, { case.marker })
+  require("notebook_rs.cells").render(buf)
+  assert(inline_text():find("INVALID CELL MARKER", 1, true),
+    "bad marker is not visible at line " .. case.row)
+  local ok, err = pcall(require("notebook_rs.client").once, {
+    op = "run", lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    line = case.row + 1, all = false, backend = "local", path = path,
+  })
+  assert(not ok and tostring(err):find("invalid cell marker on line " .. case.row, 1, true),
+    "bad marker was accepted at line " .. case.row)
+  vim.api.nvim_buf_set_lines(buf, case.row - 1, case.row, false, { original })
+end
 vim.fn.delete(path)
 print("Neovim display settings test passed")

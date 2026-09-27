@@ -15,7 +15,7 @@ fn marker(line: &str) -> Option<(String, String)> {
     if !matches!(kind, "code" | "markdown" | "raw") {
         return None;
     }
-    let id = rest.trim().strip_prefix("id=")?.trim();
+    let id = rest.strip_prefix(" id=")?;
     if id.is_empty() || id.contains(char::is_whitespace) {
         return None;
     }
@@ -121,17 +121,35 @@ mod tests {
     }
 
     #[test]
-    fn rejects_malformed_third_marker_instead_of_running_second_cell() {
-        let lines = [
-            "# %% [code] id=first",
-            "print('first')",
-            "# %% [code] id=second",
-            "print('second')",
-            "# %% [code] }d=third",
-            "print('third')",
-        ]
-        .map(str::to_owned);
-        let error = parse(&lines).unwrap_err().to_string();
-        assert!(error.contains("line 5") && error.contains("id="));
+    fn rejects_invalid_markers_at_any_cell_boundary() {
+        let invalid = [
+            "# %% [code] }d=broken",
+            "# %% [code] id=",
+            "# %% [code] id=broken extra",
+            "# %% [unknown] id=broken",
+            "# %% [code]id=broken",
+            "# %% [code]  id=broken",
+            "# %% [code] id=broken ",
+        ];
+        let positions = [0, 2, 4];
+        for marker in invalid {
+            for index in positions {
+                let mut lines = [
+                    "# %% [code] id=one",
+                    "print(1)",
+                    "# %% [code] id=two",
+                    "print(2)",
+                ]
+                .map(str::to_owned)
+                .to_vec();
+                lines.insert(index, marker.to_owned());
+                let error = parse(&lines).unwrap_err().to_string();
+                assert!(
+                    error.contains(&format!("invalid cell marker on line {}", index + 1)),
+                    "marker {marker:?} at line {} returned {error:?}",
+                    index + 1
+                );
+            }
+        }
     }
 }
