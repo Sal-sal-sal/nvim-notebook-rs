@@ -52,7 +52,7 @@ impl Worker {
             }
             let execution = match backend {
                 "local" => self.local(path)?.execute(&cell.source)?,
-                "colab" => self.colab.run(cell)?,
+                "colab" => self.colab.run(cell, "3600")?,
                 _ => bail!("backend must be 'local' or 'colab'"),
             };
             if all {

@@ -54,3 +54,50 @@ fn failed_cli_login_explains_next_step_and_does_not_select_session() {
         .unwrap()
         .contains("NotebookColabNew"));
 }
+
+#[test]
+fn idle_session_with_closed_kernel_is_not_reported_connected() {
+    let dir = tempfile::tempdir().unwrap();
+    let fake = dir.path().join("colab");
+    fs::write(
+        &fake,
+        "#!/bin/sh\nif [ \"$1\" = status ]; then echo 'Status: IDLE'; exit 0; fi\nif [ \"$1\" = exec ]; then echo 'WebSocketConnectionClosedException' >&2; exit 1; fi\nexit 2\n",
+    )
+    .unwrap();
+    let mut permissions = fs::metadata(&fake).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&fake, permissions).unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_nvim-notebook-rs"))
+        .arg("worker")
+        .env("NVIM_NOTEBOOK_COLAB", &fake)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    writeln!(
+        input,
+        "{}",
+        json!({"id":1,"op":"colab_connect","session":"stale"})
+    )
+    .unwrap();
+    writeln!(input, "{}", json!({"id":2,"op":"colab_status"})).unwrap();
+    drop(input);
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+    let replies = output
+        .stdout
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| serde_json::from_slice::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(replies.len(), 2);
+    for reply in replies {
+        assert_eq!(reply["data"]["success"], false);
+        assert_eq!(reply["data"]["session"], "stale");
+        assert!(reply["data"]["output"]
+            .as_str()
+            .unwrap()
+            .contains("WebSocketConnectionClosedException"));
+    }
+}

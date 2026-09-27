@@ -1,4 +1,8 @@
 local client = require("notebook_rs.client")
+local cells = require("notebook_rs.cells")
+local guard = require("notebook_rs.guard")
+local panel = require("notebook_rs.panel")
+local status = require("notebook_rs.status")
 local M = { results = {}, artifacts = {} }
 
 local function report(response)
@@ -7,28 +11,6 @@ local function report(response)
     return false
   end
   return true
-end
-
-local function output(text, failed)
-  local source = vim.api.nvim_get_current_win()
-  if M.output_win and vim.api.nvim_win_is_valid(M.output_win) then
-    vim.api.nvim_win_close(M.output_win, true)
-  end
-  vim.cmd("botright 12new")
-  M.output_win = vim.api.nvim_get_current_win()
-  local buf = vim.api.nvim_get_current_buf()
-  vim.bo[buf].buftype = "nofile"
-  vim.bo[buf].bufhidden = "wipe"
-  vim.bo[buf].swapfile = false
-  vim.bo[buf].filetype = "markdown"
-  local lines = vim.split(text ~= "" and text or "[No output]", "\n", { plain = true })
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.bo[buf].modifiable = false
-  vim.api.nvim_buf_set_name(buf, "notebook-rs://output")
-  vim.api.nvim_set_current_win(source)
-  if failed then
-    vim.notify("Notebook execution failed; see output panel", vim.log.levels.ERROR)
-  end
 end
 
 local function notebook_buffer()
@@ -41,28 +23,32 @@ end
 
 local function save(buf)
   local path = vim.b[buf].notebook_rs_path
+  guard.check(buf, path)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   client.once({ op = "save", path = path, lines = lines, results = vim.tbl_values(M.results[buf] or {}) })
+  guard.saved(buf, path)
   M.results[buf] = {}
   vim.bo[buf].modified = false
   vim.notify("Saved " .. vim.fn.fnamemodify(path, ":~"))
 end
 
-function M.open(path)
+function M.attach(buf, path, is_new)
   local absolute = vim.fn.fnamemodify(path, ":p")
-  local data = client.once({ op = "open", path = absolute })
-  local buf = vim.api.nvim_create_buf(true, false)
-  vim.api.nvim_buf_set_name(buf, "notebook-rs://" .. absolute)
+  local data = is_new and { lines = { "# %% [code] id=cell-1" } }
+    or client.once({ op = "open", path = absolute })
   vim.bo[buf].buftype = "acwrite"
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = "python"
   vim.b[buf].notebook_rs_path = absolute
   vim.b[buf].notebook_rs_backend = "local"
+  guard.open(buf, absolute)
   M.results[buf] = {}
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
   vim.bo[buf].modified = false
-  vim.api.nvim_set_current_buf(buf)
+  cells.render(buf)
+  local group = vim.api.nvim_create_augroup("NotebookRsBuffer" .. buf, { clear = true })
   vim.api.nvim_create_autocmd("BufWriteCmd", {
+    group = group,
     buffer = buf,
     callback = function()
       local ok, err = pcall(save, buf)
@@ -72,9 +58,31 @@ function M.open(path)
     end,
   })
   vim.api.nvim_create_autocmd("BufWipeout", {
+    group = group,
     buffer = buf,
-    callback = function() M.results[buf] = nil end,
+    callback = function()
+      M.results[buf] = nil
+      guard.release(buf)
+    end,
   })
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+    group = group,
+    buffer = buf,
+    callback = function() cells.reset(buf) end,
+  })
+  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "BufEnter" }, {
+    group = group,
+    buffer = buf,
+    callback = function() cells.focus(buf) end,
+  })
+end
+
+function M.open(path)
+  local absolute = vim.fn.fnamemodify(path, ":p")
+  if not vim.uv.fs_stat(absolute) then
+    error("notebook does not exist: " .. absolute .. "; use :NotebookNew")
+  end
+  vim.cmd.edit(vim.fn.fnameescape(absolute))
 end
 
 function M.new(path)
@@ -94,6 +102,7 @@ function M.edit(action, kind)
   })
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
   vim.api.nvim_win_set_cursor(0, { data.cursor, 0 })
+  cells.reset(buf)
 end
 
 function M.run(all)
@@ -101,17 +110,27 @@ function M.run(all)
   local line = vim.api.nvim_win_get_cursor(0)[1]
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local backend = vim.b[buf].notebook_rs_backend or "local"
+  cells.begin(buf, lines, line, all)
   client.request({ op = "run", lines = lines, line = line, all = all, backend = backend,
     path = vim.b[buf].notebook_rs_path }, function(response)
     if report(response) then
       if vim.api.nvim_buf_is_valid(buf) then
+        cells.finish(buf, response.data.results or {}, response.data.success)
         for _, result in ipairs(response.data.results or {}) do
           M.results[buf][result.id] = result
           vim.bo[buf].modified = true
         end
       end
       M.artifacts = response.data.artifacts or {}
-      output(response.data.output, not response.data.success)
+      panel.show(response.data.output, not response.data.success)
+      if backend == "colab" then
+        status.execution_result(response.data)
+      end
+    elseif vim.api.nvim_buf_is_valid(buf) then
+      cells.finish(buf, {}, false)
+      if backend == "colab" then
+        status.set("error", status.session)
+      end
     end
   end)
 end
@@ -144,10 +163,22 @@ function M.backend(name)
 end
 
 function M.colab(payload)
+  if payload.op == "colab_new" or payload.op == "colab_connect" or payload.op == "colab_status" then
+    status.set("connecting", status.session)
+  end
   client.request(payload, function(response)
+    if not response.ok or not response.data.success then
+      local selected = response.ok and response.data.session
+      status.set("error", type(selected) == "string" and selected or status.session)
+    elseif payload.op == "colab_stop" then
+      status.set("disconnected")
+    elseif type(response.data.session) == "string" then
+      status.set("connected", response.data.session)
+    end
     if report(response) then
-      output(response.data.output, not response.data.success)
-      if response.data.success and response.data.session then
+      panel.show(response.data.output, not response.data.success,
+        "Colab command failed; see output panel")
+      if response.data.success and type(response.data.session) == "string" then
         vim.notify("Colab session: " .. response.data.session)
       end
     end

@@ -60,6 +60,7 @@ impl Colab {
         let result = self.command(&args)?;
         if result.success {
             self.session = Some(session.to_owned());
+            return self.verify_selected(result);
         }
         Ok(result)
     }
@@ -69,11 +70,28 @@ impl Colab {
         let result = self.command(&["status", "--session", session])?;
         if result.success {
             self.session = Some(session.to_owned());
+            return self.verify_selected(result);
         }
         Ok(result)
     }
 
-    pub fn run(&self, cell: &Cell) -> Result<Execution> {
+    fn verify_selected(&self, status: Execution) -> Result<Execution> {
+        let probe = Cell {
+            kind: "code".to_owned(),
+            id: "connection-check".to_owned(),
+            source: "pass\n".to_owned(),
+            first_line: 1,
+            last_line: 1,
+        };
+        let result = self.run(&probe, "20")?;
+        if result.success {
+            Ok(status)
+        } else {
+            Ok(result)
+        }
+    }
+
+    pub fn run(&self, cell: &Cell, timeout: &str) -> Result<Execution> {
         let session = self
             .session
             .as_deref()
@@ -91,7 +109,7 @@ impl Colab {
             "--file",
             file,
             "--timeout",
-            "3600",
+            timeout,
         ])?;
         colab_notebook::read_output(&path, result)
     }
@@ -101,7 +119,12 @@ impl Colab {
             .session
             .as_deref()
             .context("no Colab session selected")?;
-        self.command(&["status", "--session", session])
+        let result = self.command(&["status", "--session", session])?;
+        if result.success {
+            self.verify_selected(result)
+        } else {
+            Ok(result)
+        }
     }
 
     pub fn stop(&mut self) -> Result<Execution> {
