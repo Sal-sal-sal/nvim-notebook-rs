@@ -40,7 +40,7 @@ function M.attach(buf, path, is_new)
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = "python"
   vim.b[buf].notebook_rs_path = absolute
-  vim.b[buf].notebook_rs_backend = "local"
+  require("notebook_rs.backend").attach(buf)
   guard.open(buf, absolute)
   M.results[buf] = {}
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
@@ -160,15 +160,11 @@ function M.open_artifact(index)
 end
 
 function M.backend(name)
-  if name ~= "local" and name ~= "colab" then
-    error("backend must be local or colab")
-  end
-  local buf = notebook_buffer()
-  vim.b[buf].notebook_rs_backend = name
-  vim.notify("Notebook backend: " .. name)
+  require("notebook_rs.backend").select(notebook_buffer(), name, true)
 end
 
 function M.colab(payload)
+  local origin = vim.api.nvim_get_current_buf()
   if payload.op == "colab_new" or payload.op == "colab_connect" or payload.op == "colab_status" then
     status.set("connecting", status.session)
   end
@@ -180,6 +176,9 @@ function M.colab(payload)
       status.set("disconnected")
     elseif type(response.data.session) == "string" then
       status.set("connected", response.data.session)
+      if payload.op == "colab_new" or payload.op == "colab_connect" then
+        require("notebook_rs.backend").connected(origin)
+      end
     end
     if report(response) then
       panel.show(response.data.output, not response.data.success,

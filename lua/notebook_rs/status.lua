@@ -25,7 +25,7 @@ function M.component()
   if M.session then
     text = text .. " [" .. M.session .. "]"
   end
-  return text
+  return text .. " · run: " .. (vim.b.notebook_rs_backend or "local")
 end
 
 function M.color()

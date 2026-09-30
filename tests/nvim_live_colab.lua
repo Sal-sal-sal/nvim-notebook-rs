@@ -23,7 +23,7 @@ if require("notebook_rs.status").state ~= "connected" then
   error("Colab session did not pass its live kernel check: " .. output:sub(-1800))
 end
 
-vim.cmd("NotebookBackend colab")
+assert(vim.b[buf].notebook_rs_backend == "colab", "Colab connection kept the local backend")
 vim.api.nvim_win_set_cursor(0, { 2, 0 })
 vim.cmd("NotebookRun")
 assert(vim.wait(90000, function()
