@@ -31,6 +31,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
+      - name: Install plot test dependency
+        run: python -m pip install matplotlib
       - name: Check tag and package version
         run: |
           python - <<'PY'
