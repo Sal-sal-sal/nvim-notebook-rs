@@ -1,0 +1,39 @@
+*notebook-rs-commands.txt*  Notebook command reference
+
+COMMANDS                                             *notebook-rs-commands*
+
+:NotebookOpen {path}         Open an existing .ipynb notebook.
+:NotebookNew {path}          Create a notebook; refuses an existing path.
+:NotebookRun                Execute the code cell containing the cursor.
+:NotebookRunAll             Execute code cells until the first failure.
+:NotebookRestart            Reset this notebook's local Python state.
+:NotebookBackend {backend}   Choose local or colab for this buffer.
+:NotebookOpenArtifact [n]   Open image/HTML output n, or the latest output.
+
+:NotebookCellNext           Move to the next cell.
+:NotebookCellPrev           Move to the previous cell.
+:NotebookCellGoto {n}       Move to cell n, counted from 1.
+:NotebookCellNew [kind]     Insert a cell below the current cell.
+:NotebookCellNewAbove [kind] Insert a cell above the current cell.
+:NotebookCellNewBelow [kind] Insert a cell below the current cell.
+:NotebookCellDelete         Delete the current cell.
+:NotebookCellMove {direction} Move the cell up or down.
+
+Cell kinds are code, markdown, or raw; insertion defaults to code.
+Markdown and raw lines appear with a # prefix in the editable buffer.
+The # %% [kind] id=... marker identifies a cell and must remain valid.
+Malformed markers and duplicate ids prevent execution and saving.
+
+SAVING
+
+:write saves edits and structured execution results to the original path.
+Unchanged cells retain metadata, execution counts, and outputs.
+Editing code clears that cell's stale outputs.
+An externally modified file requires reopening before saving.
+Invalid notebooks open as read-only diagnostic buffers.
+Each notebook has its own persistent local Python process.
+Local execution accepts standard Python; IPython magics require Colab.
+
+See |notebook-rs-colab| for remote execution and file transfer commands.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
