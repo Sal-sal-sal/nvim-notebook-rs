@@ -33,23 +33,5 @@ jobs:
       - name: Install Neovim on macOS
         if: runner.os == 'macOS'
         run: brew install neovim
-      - name: Format
-        run: cargo fmt --all --check
-      - name: Lint
-        run: cargo clippy --all-targets --locked -- -D warnings
-      - name: Unit and integration tests
-        run: cargo test --locked
-      - name: Build production binary
-        run: cargo build --release --locked
-      - name: Neovim smoke test
-        env:
-          NOTEBOOK_RS_ROOT: ${{ github.workspace }}
-          NOTEBOOK_RS_BIN: ${{ github.workspace }}/target/release/nvim-notebook-rs
-        run: |
-          nvim --headless --clean -u NONE -l tests/nvim_smoke.lua
-          nvim --headless --clean -u NONE -l tests/nvim_navigation.lua
-          nvim --headless --clean -u NONE -l tests/nvim_cell_keys.lua
-          nvim --headless --clean -u NONE -l tests/nvim_inline.lua
-          nvim --headless --clean -u NONE -l tests/nvim_display.lua
-          nvim --headless --clean -u NONE -l tests/nvim_regressions.lua
-          nvim --headless --clean -u NONE -l tests/nvim_backend.lua
+      - name: Verify worker and Neovim workflows
+        run: python scripts/verify.py
