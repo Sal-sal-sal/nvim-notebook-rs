@@ -119,6 +119,9 @@ For Colab, authorize in an interactive terminal and select a named session:
 ```
 
 Use `:NotebookColabConnect training` to select a session that already exists.
+When named active sessions exist, `:NotebookColabNew` and `<leader>ccn` show them alongside a `Create a new Colab session` option.
+Choose an existing session to connect, or choose the new-session option to create another one; `<leader>ccn` then asks for its name and optional GPU or TPU.
+A CLI entry marked `[?]` has no local name and cannot be selected by the plugin.
 Other commands are `:NotebookColabSessions` and `:NotebookBackend local`.
 Press `<leader>cc` inside a notebook to choose a cell or Colab action from a menu.
 Direct shortcuts use the same prefix:
@@ -126,7 +129,7 @@ Direct shortcuts use the same prefix:
 | Shortcut | Action |
 | --- | --- |
 | `<leader>ccl` | Log in |
-| `<leader>ccn` | Create a session |
+| `<leader>ccn` | Choose an active session or create one |
 | `<leader>ccc` | Connect to a session |
 | `<leader>ccs` | Check connection status |
 | `<leader>ccp` | List sessions |
