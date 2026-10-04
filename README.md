@@ -17,23 +17,22 @@ The extension does not read or store OAuth tokens.
 
 ## Install
 
-Clone this repository outside your Neovim configuration and build it:
-
-```sh
-cargo build --release
-```
-
-Add the repository as a local plugin in a `lazy.nvim` configuration:
+Add the public repository to your `lazy.nvim` configuration:
 
 ```lua
 return {
   {
-    dir = "/absolute/path/to/nvim-notebook-rs",
-    name = "nvim-notebook-rs",
-    build = "cargo build --release",
+    "Sal-sal-sal/nvim-notebook-rs",
+    build = "cargo build --release --locked",
+    config = function()
+      require("notebook_rs").setup()
+    end,
   },
 }
 ```
+
+For a local checkout, use `dir = "/absolute/path/to/nvim-notebook-rs"` in place of the repository name.
+Build a standalone checkout with `cargo build --release --locked`.
 
 The plugin finds the binary in its `target/release` directory.
 Set `vim.g.notebook_rs_bin` to a custom binary path if needed.
