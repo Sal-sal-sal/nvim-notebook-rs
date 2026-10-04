@@ -1,0 +1,35 @@
+*notebook-rs-options.txt*  Display and executable settings
+
+OPTIONS                                              *notebook-rs-options*
+
+Configure with require("notebook_rs").setup({ ... }).
+
+    distance_between_cells = 2
+        Non-negative integer; virtual blank lines between cell borders.
+        These lines never become notebook source.
+
+    nootbook_hidden_id_line = true
+        Boolean; conceal cell markers while retaining their ids.
+        Neovim 0.10 leaves an empty line; 0.11+ hides the whole line.
+
+    nootbook_result = "nootbook"
+        "nootbook": inline virtual cell output.
+        "window": bottom output panel.
+        "hidden": keep execution results without displaying them.
+
+The nootbook spelling is part of the current API.
+Results remain available for :write in every display mode.
+Re-running setup updates display settings in open notebook buffers.
+
+EXECUTABLES                                          *notebook-rs-executables*
+
+vim.g.notebook_rs_bin        Explicit Rust worker path.
+NVIM_NOTEBOOK_PYTHON         Python executable (default: python3).
+NVIM_NOTEBOOK_COLAB          Colab CLI executable (default: colab).
+NVIM_NOTEBOOK_COLAB_CA_BUNDLE Optional trusted CA bundle for Colab TLS.
+
+The worker is discovered on PATH or in the plugin's target/release directory.
+The target/debug directory is also supported during development.
+Restart Neovim after changing environment variables used by its worker.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
