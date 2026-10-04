@@ -40,7 +40,8 @@ if vim.fn.has("nvim-0.11") == 1 then
   local marks = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })
   assert(marks[3][4].conceal_lines == "", "whole-line conceal is missing")
 end
-assert(vim.api.nvim_win_text_height(0, { start_row = 5, end_row = 5 }).all > 1,
+local border_row = vim.fn.has("nvim-0.11") == 1 and 5 or 4
+assert(vim.api.nvim_win_text_height(0, { start_row = border_row, end_row = border_row }).all > 1,
   "concealing the marker also hid the cell border")
 assert(vim.api.nvim_buf_get_lines(buf, 4, 5, false)[1] == "# %% [code] id=third",
   "concealing a marker changed the Python source")

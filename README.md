@@ -1,5 +1,9 @@
 # nvim-notebook-rs
 
+[![CI](https://github.com/Sal-sal-sal/nvim-notebook-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/Sal-sal-sal/nvim-notebook-rs/actions/workflows/ci.yml)
+[![Compatibility](https://github.com/Sal-sal-sal/nvim-notebook-rs/actions/workflows/compatibility.yml/badge.svg)](https://github.com/Sal-sal-sal/nvim-notebook-rs/actions/workflows/compatibility.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A standalone Neovim notebook extension with a Rust worker.
 It opens editable Jupyter `.ipynb` notebooks as Python cell text, keeps a local Python kernel alive between runs, and can execute cells in a named Google Colab CLI session.
 
@@ -175,8 +179,22 @@ The installed Colab CLI may exit with code zero for a Python exception, so the e
 `src/runtime/` owns the persistent local Python process and Colab CLI subprocesses.
 `src/protocol.rs` exposes a line-delimited JSON protocol to the minimal Lua Neovim interface in `lua/notebook_rs/`.
 
-`cargo test` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
+`cargo test --locked` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
 The fake CLI exits successfully after a Python error, matching the installed CLI, so tests prove structured error detection.
 The headless Neovim smoke tests cover execution, cell edits, insertion above and below, navigation shortcuts, Colab actions, inline tracebacks, and numeric cell targets.
 GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke tests on macOS and Linux.
 The Colab test uses a fake CLI so CI never needs account credentials or allocates a paid runtime.
+
+## Documentation and examples
+
+Run `:checkhealth notebook_rs` to diagnose worker, Python, and Colab CLI discovery.
+Open `:help nvim-notebook-rs` for command, option, shortcut, and Colab references.
+Try [the local walkthrough](examples/local.ipynb) or [the Colab walkthrough](examples/colab.ipynb).
+Copy [the lazy.nvim example](examples/lazy.lua) into your plugin configuration.
+See [troubleshooting](docs/troubleshooting.md), [architecture](docs/architecture.md), [releases](docs/releases.md), and [contributing](CONTRIBUTING.md).
+Run the same checks as CI with `python3 scripts/verify.py`.
+Released native workers are available through [GitHub Releases](https://github.com/Sal-sal-sal/nvim-notebook-rs/releases).
+
+## License
+
+This extension is distributed under the [MIT license](LICENSE).
