@@ -1,0 +1,36 @@
+*notebook-rs-colab.txt*  Google Colab execution
+
+COLAB                                                *notebook-rs-colab*
+
+Install the official Google Colab CLI separately.
+Use :NotebookColabLogin to authenticate interactively through the CLI.
+The extension does not manage OAuth tokens.
+
+:NotebookColabNew [name] [accelerator]
+        Choose an existing named session or create a session.
+        Accelerator: T4, L4, G4, A100, H100, TPU:v5e1, or TPU:v6e1.
+        Availability and allocation belong to the Colab account.
+:NotebookColabConnect {name} Connect to an existing named session.
+:NotebookColabSessions      List sessions known to the CLI.
+:NotebookColabStatus        Check connection and execute a kernel probe.
+:NotebookColabRestart       Restart the selected remote kernel.
+:NotebookColabStop          Stop the selected session.
+:NotebookColabURL           Show the selected session URL.
+:NotebookColabInstall {packages...} Install packages remotely.
+:NotebookColabUpload {local} {remote} Upload a local file.
+:NotebookColabDownload {remote} {local} Download a remote file.
+:NotebookColabList [path]    List remote files.
+
+A CLI assignment marked [?] has no reusable local session name.
+Cancelling the session chooser keeps the current session unchanged.
+A successful connection changes the originating notebook to colab.
+New notebooks opened during a connection inherit the colab backend.
+Use :NotebookBackend local to select local execution explicitly.
+The statusline distinguishes the connection from run: local/run: colab.
+
+Python exceptions appear as cell failures even when the CLI exits zero.
+A failed Python cell does not by itself disconnect the remote session.
+One long-running cell delays other requests to the same worker.
+Saving uses a separate worker and remains available during execution.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
