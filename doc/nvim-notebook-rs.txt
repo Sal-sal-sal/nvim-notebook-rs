@@ -1,0 +1,41 @@
+*nvim-notebook-rs.txt*  Editable Jupyter notebooks with a Rust worker
+
+NVIM NOTEBOOK RS                                      *nvim-notebook-rs*
+
+Open .ipynb files directly with :edit or :NotebookOpen.
+Python cells run locally or through an authenticated Google Colab CLI session.
+Notebook metadata and unchanged outputs survive saves.
+
+INSTALLATION                                         *notebook-rs-install*
+
+Requires Neovim 0.10+, Rust 1.85+, and Python 3.
+Add this lazy.nvim specification: >lua
+    {
+      "Sal-sal-sal/nvim-notebook-rs",
+      build = "cargo build --release --locked",
+      config = function() require("notebook_rs").setup() end,
+    }
+<
+For local development, replace the repository name with a dir field.
+Only one plugin should register the .ipynb open/save handler.
+Run :checkhealth notebook_rs to check your installation.
+
+GETTING STARTED                                      *notebook-rs-start*
+
+    :NotebookNew experiment.ipynb
+    :NotebookCellNewBelow
+    :NotebookRun
+    :write
+
+Place the cursor in a code cell before running it.
+Use :NotebookRunAll to execute code cells in order.
+Save explicitly with :write to persist execution outputs.
+
+REFERENCE
+
+    |notebook-rs-commands|  Notebook commands
+    |notebook-rs-options|   Configuration
+    |notebook-rs-keys|      Buffer-local shortcuts
+    |notebook-rs-colab|     Google Colab sessions
+
+vim:tw=78:ts=8:noet:ft=help:norl:
