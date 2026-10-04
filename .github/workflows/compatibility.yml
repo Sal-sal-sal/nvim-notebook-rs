@@ -1,0 +1,36 @@
+name: Compatibility
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  supported-versions:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim: [v0.10.4, v0.11.5]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.85.0'
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install matplotlib
+      - name: Install supported Neovim
+        env:
+          NEOVIM_VERSION: ${{ matrix.neovim }}
+        run: |
+          curl -fL "https://github.com/neovim/neovim/releases/download/$NEOVIM_VERSION/nvim-linux-x86_64.tar.gz" -o nvim.tar.gz
+          tar -xzf nvim.tar.gz
+          echo "$PWD/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+      - name: Verify minimum Rust and supported Neovim
+        run: python scripts/verify.py
