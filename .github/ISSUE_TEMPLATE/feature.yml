@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a notebook workflow improvement.
+title: "feature: "
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Current workflow
+      description: Explain what you are trying to do and what currently gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed behavior
+      description: Describe how you would use the feature in Neovim.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Include workarounds or related commands you have tried.
