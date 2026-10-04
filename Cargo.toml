@@ -10,6 +10,7 @@ readme = "README.md"
 keywords = ["neovim", "notebook", "jupyter", "python", "colab"]
 categories = ["command-line-utilities", "development-tools"]
 publish = false
+license = "MIT"
 
 [[bin]]
 name = "nvim-notebook-rs"
