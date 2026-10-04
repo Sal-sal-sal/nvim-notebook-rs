@@ -1,0 +1,37 @@
+*notebook-rs-keys.txt*  Buffer-local notebook shortcuts
+
+KEYS                                                 *notebook-rs-keys*
+
+All mappings use your mapleader and apply only to notebook buffers.
+
+<leader>jc       Next cell.
+<leader>kc       Previous cell.
+<leader>3b       Go to cell 3; multi-digit numbers also work.
+<leader>rc       Run the current cell.
+<leader>rr       Run the current cell.
+<leader>ra       Run all code cells.
+<leader>cca      Insert a code cell above.
+<leader>ccb      Insert a code cell below.
+<leader>ccx      Delete the current cell.
+<leader>cc       Open the notebook and Colab action menu.
+
+Colab shortcuts:
+
+<leader>ccl      Authenticate in an interactive CLI terminal.
+<leader>ccn      Choose an active session or create a new session.
+<leader>ccc      Connect to a named session.
+<leader>ccs      Check the selected connection and kernel.
+<leader>ccp      List active sessions.
+<leader>ccr      Restart the selected kernel.
+<leader>ccu      Open the selected session URL.
+<leader>ccX      Stop the selected session.
+<leader>ccB      Run this notebook on Colab.
+<leader>ccL      Run this notebook locally.
+<leader>cci      Install packages in Colab.
+<leader>ccf      List remote files.
+<leader>ccU      Upload a local file.
+<leader>ccD      Download a remote file.
+
+See |notebook-rs-commands| for commands usable without mappings.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
