@@ -1,5 +1,6 @@
 local ui = require("notebook_rs.ui")
 local status = require("notebook_rs.status")
+local client = require("notebook_rs.client")
 local M = {}
 
 local function prompt(label, default, callback, optional)
@@ -20,13 +21,73 @@ local function connect()
   end)
 end
 
-local function create()
-  prompt("New Colab session: ", "nvim", function(session)
-    prompt("GPU/TPU (optional): ", "", function(accelerator)
-      ui.colab({ op = "colab_new", session = session,
-        gpu = accelerator ~= "" and accelerator or nil })
+local function new_session(session, accelerator)
+  ui.colab({ op = "colab_new", session = session, gpu = accelerator ~= "" and accelerator or nil })
+end
+
+local function ask_new_session(session, accelerator)
+  prompt("New Colab session: ", session or status.session or "nvim", function(name)
+    prompt("GPU/TPU (optional): ", accelerator or "", function(value)
+      new_session(name, value)
     end, true)
   end)
+end
+
+local function choose_session(sessions, session, accelerator, should_prompt)
+  local choices = {}
+  for _, name in ipairs(sessions) do
+    choices[#choices + 1] = { kind = "existing", name = name }
+  end
+  choices[#choices + 1] = { kind = "new", label = "Create a new Colab session" }
+
+  vim.ui.select(choices, {
+    prompt = "Colab session",
+    format_item = function(item)
+      return item.kind == "new" and item.label or "Connect to " .. item.name
+    end,
+  }, function(item)
+    if not item then
+      return
+    end
+    if item.kind == "new" then
+      if should_prompt then
+        ask_new_session(session, accelerator)
+      else
+        new_session(session or "nvim", accelerator or "")
+      end
+      return
+    end
+    vim.notify("Reusing active Colab session: " .. item.name)
+    ui.colab({ op = "colab_connect", session = item.name })
+  end)
+end
+
+function M.create_or_reuse(session, accelerator, should_prompt)
+  client.request({ op = "colab_sessions" }, function(response)
+    if not response.ok or not response.data.success then
+      local output = response.ok and response.data.output or response.error
+      require("notebook_rs.panel").show(output or "Could not check active Colab sessions", true,
+        "Could not check active Colab sessions")
+      return
+    end
+    local active = response.data.sessions or {}
+    if #active > 0 then
+      choose_session(active, session, accelerator, should_prompt)
+    elseif response.data.unmanaged then
+      local output = response.data.output or ""
+      require("notebook_rs.panel").show(
+        output .. "\nAn active assignment has no local Colab CLI session name and cannot be reused.",
+        true, "Colab has an active session that this CLI cannot select")
+    elseif should_prompt then
+      ask_new_session(session, accelerator)
+    else
+      new_session(session or "nvim", accelerator or "")
+    end
+  end)
+end
+
+local function create()
+  M.create_or_reuse(nil, nil, true)
 end
 
 local function install()
@@ -69,7 +130,7 @@ local actions = {
   { key = "x", label = "Delete cell", group = "Notebook",
     run = function() vim.cmd.NotebookCellDelete() end },
   { key = "l", label = "Log in", run = ui.login },
-  { key = "n", label = "New session", run = create },
+  { key = "n", label = "Create session or reuse active one", run = create },
   { key = "c", label = "Connect to session", run = connect },
   { key = "s", label = "Connection status", run = command("colab_status") },
   { key = "p", label = "List sessions", run = command("colab_sessions") },
