@@ -1,8 +1,10 @@
 mod colab;
 mod colab_notebook;
+mod colab_sessions;
 mod local;
 
 pub use colab::Colab;
+pub use colab_sessions::known_names as colab_session_names;
 pub use local::Local;
 
 pub struct Execution {

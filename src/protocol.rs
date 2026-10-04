@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 
 use crate::{
     notebook,
-    runtime::{Colab, Execution, Local},
+    runtime::{colab_session_names, Colab, Execution, Local},
 };
 
 mod request;
@@ -139,7 +139,15 @@ impl Worker {
             Request::ColabStatus => execution(self.colab.status()?, self.colab.session.as_deref()),
             Request::ColabStop => execution(self.colab.stop()?, self.colab.session.as_deref()),
             Request::ColabSessions => {
-                execution(self.colab.sessions()?, self.colab.session.as_deref())
+                let result = self.colab.sessions()?;
+                let (sessions, unmanaged) = colab_session_names(&result.output);
+                Ok(json!({
+                    "success":result.success,
+                    "output":result.output,
+                    "session":self.colab.session.as_deref(),
+                    "sessions":sessions,
+                    "unmanaged":unmanaged
+                }))
             }
             Request::ColabRestart => {
                 execution(self.colab.restart()?, self.colab.session.as_deref())
