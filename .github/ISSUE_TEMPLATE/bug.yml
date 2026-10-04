@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible notebook, execution, or installation problem.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: Remove credentials and private notebook data before sharing output.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include a minimal notebook, exact commands, and expected versus actual behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Execution backend
+      options:
+        - Local Python
+        - Google Colab
+        - Installation or editing
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions and health report
+      description: Include Neovim, worker, Python, Colab CLI versions, and checkhealth notebook_rs output.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant output
+      render: text
