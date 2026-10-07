@@ -25,6 +25,18 @@ vim.cmd("NotebookNew " .. vim.fn.fnameescape(explicit))
 local created = vim.json.decode(table.concat(vim.fn.readfile(explicit), "\n"))
 assert(created.nbformat == 4 and #created.cells == 1)
 
+local recovered = vim.fn.tempname() .. ".ipynb"
+vim.fn.writefile({ "{" }, recovered)
+vim.cmd("edit " .. vim.fn.fnameescape(recovered))
+assert(not vim.bo.modifiable and vim.bo.readonly)
+vim.cmd("edit!")
+assert(not vim.bo.modifiable and vim.bo.readonly)
+vim.fn.writefile({ vim.json.encode(created) }, recovered)
+vim.cmd("edit! " .. vim.fn.fnameescape(recovered))
+assert(vim.b.notebook_rs_path == recovered and vim.bo.modifiable and not vim.bo.readonly,
+  "reopening a repaired notebook kept the read-only error buffer")
+
 vim.fn.delete(path)
 vim.fn.delete(explicit)
+vim.fn.delete(recovered)
 print("Neovim empty notebook test passed")

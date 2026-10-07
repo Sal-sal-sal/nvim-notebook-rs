@@ -1,6 +1,8 @@
 local M = {}
 
 local function attach_safely(ui, args, is_new)
+  vim.bo[args.buf].modifiable = true
+  vim.bo[args.buf].readonly = false
   local ok, err = pcall(ui.attach, args.buf, args.file, is_new)
   if ok then
     require("notebook_rs.navigation").attach(args.buf)
