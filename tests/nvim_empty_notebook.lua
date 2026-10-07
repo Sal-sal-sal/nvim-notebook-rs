@@ -9,8 +9,10 @@ assert(vim.fn.getfsize(path) == 0)
 vim.cmd("edit " .. vim.fn.fnameescape(path))
 assert(vim.b.notebook_rs_path == path and vim.bo.buftype == "acwrite",
   "zero-byte notebook did not open as an editable notebook")
-assert(vim.bo.modified, "zero-byte notebook should require saving")
-assert(vim.fn.getfsize(path) == 0, "opening overwrote the original empty file")
+assert(not vim.bo.modified, "new notebook should already be saved")
+local opened = vim.json.decode(table.concat(vim.fn.readfile(path), "\n"))
+assert(opened.nbformat == 4 and #opened.cells == 1,
+  "opening a zero-byte notebook did not initialize it on disk")
 vim.api.nvim_buf_set_lines(0, 1, -1, false, { "print(42)" })
 vim.cmd("write")
 local saved = vim.json.decode(table.concat(vim.fn.readfile(path), "\n"))

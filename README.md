@@ -82,6 +82,7 @@ The option names intentionally use `nootbook` as shown above.
 The notebook buffer uses `# %% [code] id=...` cell markers.
 If a marker is mistyped, for example `}d=` instead of `id=`, execution stops with the source line number instead of treating that code as part of the previous cell.
 Opening an `.ipynb` through a file picker or `:edit` loads the same editable cell view.
+Zero-byte `.ipynb` files created by file managers are initialized on first open with one empty code cell.
 An invalid `.ipynb` opens a read-only error view so an accidental save cannot replace the original file.
 Colored borders separate code, Markdown, and raw cells, and the current cell has an arrow in the sign column.
 Two virtual blank lines separate cells by default; they do not change the saved notebook.
