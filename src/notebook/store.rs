@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use super::{
     percent::{parse, Cell},
     results::{self, CellResult},
+    template,
 };
 
 pub(super) fn source(cell: &Value) -> Result<String> {
@@ -26,6 +27,9 @@ pub(super) fn source(cell: &Value) -> Result<String> {
 
 pub(super) fn read(path: &Path) -> Result<Value> {
     let text = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    if text.is_empty() {
+        return Ok(template::blank());
+    }
     let notebook: Value = serde_json::from_str(&text).context("invalid notebook JSON")?;
     if notebook.get("nbformat").and_then(Value::as_u64) != Some(4)
         || !notebook.get("cells").is_some_and(Value::is_array)
@@ -77,7 +81,7 @@ pub fn save_with_results(path: &Path, lines: &[String], results: &[CellResult]) 
     let mut notebook = if path.exists() {
         read(path)?
     } else {
-        json!({"cells": [], "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}}, "nbformat": 4, "nbformat_minor": 5})
+        template::blank()
     };
     let cells = parsed
         .iter()
@@ -108,7 +112,7 @@ pub fn save_with_results(path: &Path, lines: &[String], results: &[CellResult]) 
 }
 
 pub fn create(path: &Path) -> Result<()> {
-    if path.exists() {
+    if path.exists() && fs::metadata(path)?.len() != 0 {
         bail!("notebook already exists: {}", path.display());
     }
     let lines = vec!["# %% [code] id=cell-1".to_owned()];

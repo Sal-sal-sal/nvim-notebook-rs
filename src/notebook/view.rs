@@ -8,6 +8,7 @@ use super::store;
 pub struct OpenView {
     pub lines: Vec<String>,
     pub results: Vec<Value>,
+    pub needs_save: bool,
 }
 
 fn display_output(output: &Value) -> Value {
@@ -34,6 +35,7 @@ fn shown_lines(kind: &str, source: &str) -> Vec<String> {
 }
 
 pub fn open_view(path: &Path) -> Result<OpenView> {
+    let needs_save = std::fs::metadata(path)?.len() == 0;
     let notebook = store::read(path)?;
     let mut lines = Vec::new();
     let mut results = Vec::new();
@@ -64,7 +66,11 @@ pub fn open_view(path: &Path) -> Result<OpenView> {
     if lines.is_empty() {
         lines.push("# %% [code] id=cell-1".to_owned());
     }
-    Ok(OpenView { lines, results })
+    Ok(OpenView {
+        lines,
+        results,
+        needs_save,
+    })
 }
 
 pub fn open(path: &Path) -> Result<Vec<String>> {

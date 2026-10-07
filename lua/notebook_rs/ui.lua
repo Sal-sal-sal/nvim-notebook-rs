@@ -44,7 +44,7 @@ function M.attach(buf, path, is_new)
   guard.open(buf, absolute)
   M.results[buf] = {}
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
-  vim.bo[buf].modified = false
+  vim.bo[buf].modified = data.needs_save == true
   require("notebook_rs.inline").attach(buf, data.results)
   cells.render(buf)
   local group = vim.api.nvim_create_augroup("NotebookRsBuffer" .. buf, { clear = true })

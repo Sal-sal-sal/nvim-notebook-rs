@@ -2,6 +2,7 @@ mod edit;
 mod percent;
 mod results;
 mod store;
+mod template;
 mod view;
 
 pub use edit::{delete, insert, insert_above, move_cell};
