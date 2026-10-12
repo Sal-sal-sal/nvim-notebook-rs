@@ -14,15 +14,15 @@ def run(command, env=None, timeout=600):
 
 
 def main():
-    run(["cargo", "fmt", "--all", "--check"])
-    run(["cargo", "clippy", "--all-targets", "--locked", "--", "-D", "warnings"])
-    run(["cargo", "test", "--locked"])
-    run(["cargo", "build", "--release", "--locked"])
     env = os.environ.copy()
+    env.setdefault("NVIM_NOTEBOOK_PYTHON", sys.executable)
+    run(["cargo", "fmt", "--all", "--check"], env)
+    run(["cargo", "clippy", "--all-targets", "--locked", "--", "-D", "warnings"], env)
+    run(["cargo", "test", "--locked"], env)
+    run(["cargo", "build", "--release", "--locked"], env)
     env.update({
         "NOTEBOOK_RS_ROOT": str(ROOT),
         "NOTEBOOK_RS_BIN": str(ROOT / "target/release/nvim-notebook-rs"),
-        "NVIM_NOTEBOOK_PYTHON": sys.executable,
     })
     tests = sorted((ROOT / "tests").glob("nvim_*.lua"))
     for test in tests:

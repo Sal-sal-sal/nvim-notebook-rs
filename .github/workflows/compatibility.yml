@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install matplotlib
+      - run: npm install --global pyright@1.1.411
       - name: Install supported Neovim
         env:
           NEOVIM_VERSION: ${{ matrix.neovim }}

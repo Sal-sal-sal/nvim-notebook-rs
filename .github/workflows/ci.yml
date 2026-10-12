@@ -25,6 +25,8 @@ jobs:
           python-version: '3.12'
       - name: Install optional plot test dependency
         run: python -m pip install matplotlib
+      - name: Install Python language server for completion checks
+        run: npm install --global pyright@1.1.411
       - name: Install Neovim on Linux
         if: runner.os == 'Linux'
         run: |

@@ -37,6 +37,7 @@ function M.setup(opts)
     return
   end
   vim.g.notebook_rs_loaded = true
+  require("notebook_rs.lsp").setup()
   local ui = require("notebook_rs.ui")
   local group = vim.api.nvim_create_augroup("NotebookRsFiles", { clear = true })
   vim.api.nvim_create_autocmd("BufReadCmd", {

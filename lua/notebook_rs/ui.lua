@@ -47,6 +47,7 @@ function M.attach(buf, path, is_new)
   vim.bo[buf].modified = false
   require("notebook_rs.inline").attach(buf, data.results)
   cells.render(buf)
+  vim.schedule(function() require("notebook_rs.lsp").attach(buf) end)
   local group = vim.api.nvim_create_augroup("NotebookRsBuffer" .. buf, { clear = true })
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     group = group,
