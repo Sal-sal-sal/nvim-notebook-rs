@@ -1,6 +1,7 @@
 local layout = require("notebook_rs.output.layout")
 local buffer = require("notebook_rs.output.buffer")
 local changes = require("notebook_rs.output.changes")
+local history = require("notebook_rs.output.history")
 local M = { states = {} }
 local attached = {}
 
@@ -42,10 +43,12 @@ end
 
 function M.sync(buf, records)
   local state = ensure(buf)
+  records = history.restore(buf, state) or records
   state.records = records
   local config = require("notebook_rs.config")
   local enabled = config.cells_output_interacteable and config.nootbook_result == "nootbook"
   buffer.apply(buf, state, layout.build(state.source, records, state.prefix, enabled))
+  history.capture(buf, state, records)
 end
 
 function M.source(buf)

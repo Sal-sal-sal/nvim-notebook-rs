@@ -119,12 +119,12 @@ function M.run(all)
     if report(response) then
       if vim.api.nvim_buf_is_valid(buf) then
         require("notebook_rs.inline").update(buf, response.data.results or {})
-        cells.finish(buf, response.data.results or {}, response.data.success)
         for _, result in ipairs(response.data.results or {}) do
           M.results[buf][result.id] = result
           vim.bo[buf].modified = true
           output.modified(buf, true)
         end
+        cells.finish(buf, response.data.results or {}, response.data.success)
       end
       M.artifacts = response.data.artifacts or {}
       if require("notebook_rs.config").nootbook_result == "window" then

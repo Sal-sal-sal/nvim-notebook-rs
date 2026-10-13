@@ -1,0 +1,60 @@
+local root = assert(vim.env.NOTEBOOK_RS_ROOT)
+vim.opt.rtp:append(root)
+vim.g.notebook_rs_bin = assert(vim.env.NOTEBOOK_RS_BIN)
+require("notebook_rs").setup({ cells_output_interacteable = true, python_lsp = { enabled = false } })
+local path = vim.fn.tempname() .. ".ipynb"
+vim.cmd("NotebookNew " .. vim.fn.fnameescape(path))
+local buf = vim.api.nvim_get_current_buf()
+local output = require("notebook_rs.output")
+local source = { "# %% [code] id=first", "value = 42", "# %% [code] id=failed",
+  "print('before error')", "raise ValueError('test error')", "# %% [code] id=last", "print('last')" }
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, source)
+local function wait(check, message)
+  assert(vim.wait(5000, check, 10), message)
+end
+local function run()
+  vim.cmd("NotebookCellGoto 2")
+  vim.cmd("NotebookRun")
+  wait(function() return require("notebook_rs.cells").states[buf].failed == "error" end, "error cell did not finish")
+end
+local function stable(expected)
+  assert(vim.deep_equal(output.source(buf), expected), "source changed during redraw")
+  local ns = vim.api.nvim_create_namespace("notebook_rs_cells")
+  assert(#vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {}) == 6, "cell borders accumulated")
+  assert(vim.api.nvim_buf_line_count(buf) < 30, "notebook kept growing")
+  assert(vim.wo.conceallevel >= 2 and vim.wo.concealcursor == "nivc", "cell marker conceal was lost")
+end
+vim.cmd("NotebookCellGoto 1")
+vim.cmd("NotebookRun")
+wait(function() return require("notebook_rs.cells").states[buf].first == "ok" end, "silent cell did not finish")
+local silent_count = require("notebook_rs.ui").results[buf].first.execution_count
+run()
+for iteration = 1, 10 do
+  vim.cmd("NotebookCellGoto 2")
+  local original = output.source(buf)
+  local changed = vim.deepcopy(original)
+  changed[4] = changed[4] .. " # edit " .. iteration
+  vim.cmd("let &l:undolevels = &l:undolevels")
+  vim.cmd("normal! A # edit " .. iteration .. "\27")
+  wait(function() return vim.deep_equal(output.source(buf), changed)
+    and vim.api.nvim_buf_line_count(buf) == #changed end, "edited output was not cleared")
+  local sequence = vim.fn.undotree().seq_cur
+  vim.cmd("normal! u")
+  wait(function() return vim.deep_equal(output.source(buf), original) end, "undo lost source")
+  vim.wait(30, function() return false end, 10)
+  assert(vim.fn.undotree().seq_cur < sequence, "output redraw created an undo branch")
+  stable(original)
+  vim.api.nvim_feedkeys(vim.keycode("<C-r>"), "nx", false)
+  wait(function() return vim.deep_equal(output.source(buf), changed) end, "output redraw destroyed redo")
+  stable(changed)
+  run()
+  vim.cmd("normal! gg")
+  stable(changed)
+end
+vim.cmd("write")
+local saved = vim.json.decode(table.concat(vim.fn.readfile(path), "\n"))
+assert(#saved.cells == 3 and saved.cells[2].source:find("# edit 10", 1, true), "history damaged saved cells")
+assert(saved.cells[2].outputs[2].output_type == "error", "history lost structured error output")
+assert(saved.cells[1].execution_count == silent_count, "history lost a silent cell's execution count")
+vim.fn.delete(path)
+print("Error output, source undo/redo, cell markers, borders, and saved cells stayed stable")

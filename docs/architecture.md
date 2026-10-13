@@ -28,6 +28,17 @@ Lua stores these results in memory and marks the notebook as modified.
 A save request applies results only when their source still matches the cell.
 Changing a code cell clears stale stored output while preserving other cells.
 
+## Interactive output
+
+`lua/notebook_rs/output/` separates canonical cell source from navigable display rows.
+Generated output rows are concealed Python comments and are excluded from execution and notebook serialization.
+`buffer.lua` applies the display projection and preserves window positions.
+`changes.lua` records source edits and rejects edits limited to generated output.
+`history.lua` keeps source, output, and execution results for each retained Neovim undo sequence.
+It restores the matching projection before rendering an undo or redo, so redraw does not create a new undo branch.
+Frames share immutable result objects and are discarded when Neovim removes their undo sequences.
+`tests/nvim_output_history.lua` checks repeated errors, source undo/redo, border counts, concealed markers, and saved execution counts.
+
 ## Lifetime and concurrency
 
 The interactive worker processes requests sequentially.
