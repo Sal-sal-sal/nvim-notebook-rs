@@ -7,6 +7,8 @@
 A standalone Neovim notebook extension with a Rust worker.
 It opens editable Jupyter `.ipynb` notebooks as Python cell text, keeps a local Python kernel alive between runs, and can execute cells in a named Google Colab CLI session.
 
+Read the [Russian user guide](docs/guide.ru.md) for setup, output navigation, keybindings, and where to find each feature.
+
 ## Requirements
 
 - Rust 1.85 or newer to build the worker.
@@ -47,6 +49,7 @@ Configure the notebook in Lua:
 ```lua
 require("notebook_rs").setup({
   distance_between_cells = 2,
+  cells_output_interacteable = true,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
 })
@@ -97,7 +100,11 @@ The matching commands are `:NotebookCellNewAbove`, `:NotebookCellNewBelow`, and 
 Pass `markdown` or `raw` to either insertion command if you need another cell type.
 These mappings are buffer-local and use your Neovim `mapleader` setting.
 With the default `nootbook_result = "nootbook"`, Python and Colab output and tracebacks appear below their cells.
-These are virtual lines in Neovim, so they do not become Python source; `:write` stores them as structured notebook outputs.
+By default these are virtual lines; set `cells_output_interacteable = true` to navigate text results with the cursor, search, paging, and visual selection.
+Text display rows remain separate from Python source; `:write` stores the original structured notebook outputs.
+Output-only edits are rejected, and yanking only output removes its display prefixes.
+Images and HTML keep their virtual display.
+See `:help notebook-rs-output` or the [Russian output guide](docs/guide.ru.md#как-двигаться-по-output).
 Saved output appears again when the notebook is reopened, and changing a cell clears only its own stale output.
 Images and HTML appear as inline placeholders; use `:NotebookOpenArtifact` to open a generated file after a run.
 Use `:write` to save edits to the original `.ipynb` file.

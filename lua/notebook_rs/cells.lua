@@ -52,6 +52,7 @@ function M.render(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return
   end
+  require("notebook_rs.output").sync(buf, inline.records[buf] or {})
   vim.api.nvim_buf_clear_namespace(buf, borders, 0, -1)
   vim.api.nvim_buf_clear_namespace(buf, markers, 0, -1)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
@@ -145,6 +146,7 @@ function M.reset(buf)
 end
 
 function M.focus(buf)
+  if vim.api.nvim_get_current_buf() == buf then require("notebook_rs.output").cursor(buf) end
   if not vim.api.nvim_buf_is_valid(buf) then
     return
   end

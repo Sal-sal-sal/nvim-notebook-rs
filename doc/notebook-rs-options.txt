@@ -12,6 +12,10 @@ Configure with require("notebook_rs").setup({ ... }).
         Boolean; conceal cell markers while retaining their ids.
         Neovim 0.10 leaves an empty line; 0.11+ hides the whole line.
 
+    cells_output_interacteable = false
+        Boolean; true makes inline text output navigable with j/k, search,
+        paging, and selection. Images stay virtual. See |notebook-rs-output|.
+
     nootbook_result = "nootbook"
         "nootbook": inline virtual cell output.
         "window": bottom output panel.

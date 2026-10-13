@@ -1,4 +1,5 @@
 local client = require("notebook_rs.client")
+local output = require("notebook_rs.output")
 local cells = require("notebook_rs.cells")
 local guard = require("notebook_rs.guard")
 local panel = require("notebook_rs.panel")
@@ -24,14 +25,14 @@ end
 local function save(buf)
   local path = vim.b[buf].notebook_rs_path
   guard.check(buf, path)
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local lines = output.source(buf)
   client.once({ op = "save", path = path, lines = lines, results = vim.tbl_values(M.results[buf] or {}) })
   guard.saved(buf, path)
   M.results[buf] = {}
   vim.bo[buf].modified = false
+  output.modified(buf, false)
   vim.notify("Saved " .. vim.fn.fnamemodify(path, ":~"))
 end
-
 function M.attach(buf, path, is_new)
   local absolute = vim.fn.fnamemodify(path, ":p")
   local data = is_new and { lines = { "# %% [code] id=cell-1" } }
@@ -43,7 +44,7 @@ function M.attach(buf, path, is_new)
   require("notebook_rs.backend").attach(buf)
   guard.open(buf, absolute)
   M.results[buf] = {}
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
+  output.replace(buf, data.lines)
   vim.bo[buf].modified = false
   require("notebook_rs.inline").attach(buf, data.results)
   cells.render(buf)
@@ -65,13 +66,14 @@ function M.attach(buf, path, is_new)
     callback = function()
       M.results[buf] = nil
       require("notebook_rs.inline").release(buf)
+      output.release(buf)
       guard.release(buf)
     end,
   })
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     group = group,
     buffer = buf,
-    callback = function() cells.reset(buf) end,
+    callback = function() if output.changed(buf) then cells.reset(buf) end end,
   })
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "BufEnter" }, {
     group = group,
@@ -79,7 +81,6 @@ function M.attach(buf, path, is_new)
     callback = function() cells.focus(buf) end,
   })
 end
-
 function M.open(path)
   local absolute = vim.fn.fnamemodify(path, ":p")
   if not vim.uv.fs_stat(absolute) then
@@ -87,33 +88,31 @@ function M.open(path)
   end
   vim.cmd.edit(vim.fn.fnameescape(absolute))
 end
-
 function M.new(path)
   local absolute = vim.fn.fnamemodify(path, ":p")
   client.once({ op = "new", path = absolute })
   M.open(absolute)
 end
-
 function M.edit(action, kind)
   local buf = notebook_buffer()
   local data = client.once({
     op = "edit",
-    lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false),
-    row = vim.api.nvim_win_get_cursor(0)[1],
+    lines = output.source(buf),
+    row = output.source_row(buf, vim.api.nvim_win_get_cursor(0)[1]),
     action = action,
     kind = kind,
   })
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, data.lines)
-  vim.api.nvim_win_set_cursor(0, { data.cursor, 0 })
+  output.replace(buf, data.lines, true)
   cells.reset(buf)
+  vim.api.nvim_win_set_cursor(0, { output.display_row(buf, data.cursor), 0 })
   require("notebook_rs.navigation").refresh(buf)
 end
-
 function M.run(all)
   local buf = notebook_buffer()
-  local line = vim.api.nvim_win_get_cursor(0)[1]
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local line = output.source_row(buf, vim.api.nvim_win_get_cursor(0)[1])
+  local lines = output.source(buf)
   local backend = vim.b[buf].notebook_rs_backend or "local"
+  output.changed(buf)
   cells.begin(buf, lines, line, all)
   client.request({ op = "run", lines = lines, line = line, all = all, backend = backend,
     path = vim.b[buf].notebook_rs_path }, function(response)
@@ -124,6 +123,7 @@ function M.run(all)
         for _, result in ipairs(response.data.results or {}) do
           M.results[buf][result.id] = result
           vim.bo[buf].modified = true
+          output.modified(buf, true)
         end
       end
       M.artifacts = response.data.artifacts or {}
@@ -141,7 +141,6 @@ function M.run(all)
     end
   end)
 end
-
 function M.restart_local()
   local buf = notebook_buffer()
   client.request({ op = "restart_local", path = vim.b[buf].notebook_rs_path }, function(response)
@@ -150,7 +149,6 @@ function M.restart_local()
     end
   end)
 end
-
 function M.open_artifact(index)
   local path = M.artifacts[tonumber(index) or #M.artifacts]
   if not path then
@@ -159,11 +157,9 @@ function M.open_artifact(index)
   end
   vim.ui.open(path)
 end
-
 function M.backend(name)
   require("notebook_rs.backend").select(notebook_buffer(), name, true)
 end
-
 function M.colab(payload)
   local origin = vim.api.nvim_get_current_buf()
   if payload.op == "colab_new" or payload.op == "colab_connect" or payload.op == "colab_status" then
@@ -190,7 +186,6 @@ function M.colab(payload)
     end
   end)
 end
-
 function M.login()
   local executable = vim.env.NVIM_NOTEBOOK_COLAB or "colab"
   vim.cmd("botright 12new")

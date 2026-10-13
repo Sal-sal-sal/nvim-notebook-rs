@@ -15,11 +15,17 @@ if command == "exec":
     if "raise ValueError" in source:
         cell["outputs"] = [{"output_type": "error", "ename": "ValueError",
                             "evalue": "bad cell", "traceback": ["ValueError: bad cell"]}]
-    elif "plot()" in source:
+    elif any(name in source for name in ["plot()", "plot_wrapped()", "plot_array()", "plot_invalid()"]):
         png = base64.b64encode(bytes.fromhex(
             "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
             "0000000b49444154789c636000020000050001a5f645400000000049454e44ae426082"
         )).decode()
+        if "plot_wrapped()" in source:
+            png = " \t" + png[:40] + "\r\n" + png[40:] + "\n"
+        elif "plot_array()" in source:
+            png = [png[:40] + "\n", png[40:] + "\n"]
+        elif "plot_invalid()" in source:
+            png = png[:40] + "!" + png[40:]
         cell["outputs"] = [{"output_type": "display_data", "data": {"image/png": png}, "metadata": {}}]
     else:
         cell["outputs"] = [{"output_type": "stream", "name": "stdout", "text": "remote:" + source}]

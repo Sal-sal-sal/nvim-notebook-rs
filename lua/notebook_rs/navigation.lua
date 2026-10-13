@@ -1,10 +1,11 @@
 local M = {}
+local output = require("notebook_rs.output")
 local bindings = {}
 local kinds = { code = true, markdown = true, raw = true }
 
 local function markers(buf)
   local rows = {}
-  for row, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
+  for row, line in ipairs(output.source(buf)) do
     if kinds[line:match("^# %%%% %[(%a+)%] id=%S+$")] then
       rows[#rows + 1] = row
     end
@@ -26,10 +27,10 @@ local function jump(buf, rows, number)
     return
   end
   local target = rows[number]
-  if target < vim.api.nvim_buf_line_count(buf) and (not rows[number + 1] or target + 1 < rows[number + 1]) then
+  if target < #output.source(buf) and (not rows[number + 1] or target + 1 < rows[number + 1]) then
     target = target + 1
   end
-  vim.api.nvim_win_set_cursor(0, { target, 0 })
+  vim.api.nvim_win_set_cursor(0, { output.display_row(buf, target), 0 })
   require("notebook_rs.cells").focus(buf)
 end
 
@@ -45,7 +46,7 @@ end
 function M.relative(step)
   local buf = notebook_buffer()
   local rows = markers(buf)
-  local cursor = vim.api.nvim_win_get_cursor(0)[1]
+  local cursor = output.source_row(buf, vim.api.nvim_win_get_cursor(0)[1])
   local current = 0
   for index, row in ipairs(rows) do
     if row > cursor then

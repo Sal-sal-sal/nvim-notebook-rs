@@ -5,6 +5,7 @@ return {
     config = function()
       require("notebook_rs").setup({
         distance_between_cells = 2,
+        cells_output_interacteable = true,
         nootbook_hidden_id_line = true,
         nootbook_result = "nootbook",
       })

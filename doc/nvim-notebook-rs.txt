@@ -35,6 +35,7 @@ REFERENCE
 
     |notebook-rs-commands|  Notebook commands
     |notebook-rs-options|   Configuration
+    |notebook-rs-output|    Navigable inline text output
     |notebook-rs-keys|      Buffer-local shortcuts
     |notebook-rs-colab|     Google Colab sessions
     |notebook-rs-completion| Python completion and parameter hints

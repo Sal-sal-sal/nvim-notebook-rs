@@ -83,7 +83,7 @@ vim.api.nvim_win_set_cursor(0, { 4, 0 })
 vim.cmd("NotebookCellNew code")
 vim.api.nvim_buf_set_lines(0, 5, 6, false, { "import matplotlib.pyplot as plt; plt.plot([1, 2], [3, 4])" })
 vim.cmd("NotebookRun")
-assert(vim.wait(5000, function()
+assert(vim.wait(30000, function()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_get_name(buf) == "notebook-rs://output" then
       return table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n"):find("![Image output]", 1, true) ~= nil

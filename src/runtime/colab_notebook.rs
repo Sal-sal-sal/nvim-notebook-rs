@@ -68,8 +68,17 @@ pub(super) fn render(outputs: &[Value]) -> Result<(String, Vec<String>, bool)> {
                     display.push('\n');
                 }
                 for (mime, extension) in [("image/png", "png"), ("image/jpeg", "jpg")] {
-                    if let Some(encoded) = output["data"][mime].as_str() {
-                        let path = artifact(extension, &STANDARD.decode(encoded)?)?;
+                    let image = &output["data"][mime];
+                    if image.is_string() || image.is_array() {
+                        let encoded = text(image);
+                        let compact = encoded
+                            .bytes()
+                            .filter(|byte| !byte.is_ascii_whitespace())
+                            .collect::<Vec<_>>();
+                        let decoded = STANDARD
+                            .decode(compact)
+                            .with_context(|| format!("decoding {mime} notebook image"))?;
+                        let path = artifact(extension, &decoded)?;
                         display.push_str(&format!("![Image output]({path})\n"));
                         artifacts.push(path);
                     }
