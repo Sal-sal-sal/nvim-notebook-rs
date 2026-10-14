@@ -52,14 +52,16 @@ impl Worker {
             }
             let execution = match backend {
                 "local" => self.local(path)?.execute(&cell.source)?,
-                "colab" => self.colab.run(cell, "3600")?,
+                "colab" => self.colab.run(cell, "3600")?, // that's a bad thing because if
+                // should be settingable
+                // i would train modules it would apper
                 _ => bail!("backend must be 'local' or 'colab'"),
             };
             if all {
                 output.push_str(&format!("[Cell {}]\n", index + 1));
             }
             output.push_str(&execution.output);
-            if !execution.output.ends_with('\n') && !execution.output.is_empty() {
+            if !execution.output.trim_matches(' ').ends_with('\n') && !execution.output.is_empty() {
                 output.push('\n');
             }
             artifacts.extend(execution.artifacts.iter().cloned());
