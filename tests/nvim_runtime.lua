@@ -4,8 +4,10 @@ vim.g.notebook_rs_bin = assert(vim.env.NOTEBOOK_RS_BIN)
 local log = vim.fn.tempname()
 local cli = vim.fn.tempname()
 local script = table.concat(vim.fn.readfile(root .. "/tests/fake_colab.py"), "\n")
-local spy = "#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\n"
-  .. "with Path(" .. vim.json.encode(log) .. ").open('a') as f: f.write(json.dumps(sys.argv[1:])+'\\n')\n"
+vim.env.NVIM_NOTEBOOK_TEST_RUNTIME_LOG = log
+local spy = "#!/usr/bin/env python3\nimport json,os,sys\nfrom pathlib import Path\n"
+  .. "with Path(os.environ['NVIM_NOTEBOOK_TEST_RUNTIME_LOG']).open('a') as f: "
+  .. "f.write(json.dumps(sys.argv[1:])+'\\n')\n"
 vim.fn.writefile(vim.split(spy .. script, "\n", { plain = true }), cli)
 assert(vim.uv.fs_chmod(cli, 493))
 vim.env.NVIM_NOTEBOOK_COLAB = cli
