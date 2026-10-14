@@ -58,11 +58,9 @@ pub fn delete(lines: &[String], row: usize) -> Result<Edit> {
     let index = current(&cells, row)?;
     let mut edited = lines.to_vec();
     edited.drain(cells[index].first_line - 1..cells[index].last_line);
-    let cursor = if index + 1 < cells.len() {
-        cells[index].first_line
-    } else {
-        cells[index - 1].first_line
-    };
+    let remaining = parse(&edited)?;
+    let target = &remaining[index.min(remaining.len() - 1)];
+    let cursor = target.first_line + usize::from(target.first_line < target.last_line);
     Ok(Edit {
         lines: edited,
         cursor,
@@ -107,6 +105,35 @@ mod tests {
         assert_eq!(cells[1].source, "x + 1\n");
         let deleted = delete(&moved.lines, moved.cursor).unwrap();
         assert_eq!(parse(&deleted.lines).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn deletion_enters_surviving_cell_content_or_its_empty_header() {
+        for body in [vec![], vec![""], vec!["x = 1", "print(x)"]] {
+            let lines = ["a", "b", "c"]
+                .into_iter()
+                .flat_map(|id| {
+                    std::iter::once(format!("# %% [code] id={id}"))
+                        .chain(body.iter().map(|line| (*line).to_owned()))
+                })
+                .collect::<Vec<_>>();
+            let original = parse(&lines).unwrap();
+            for index in 0..original.len() {
+                let edit = delete(&lines, original[index].first_line).unwrap();
+                let remaining = parse(&edit.lines).unwrap();
+                let target = remaining
+                    .iter()
+                    .find(|cell| edit.cursor >= cell.first_line && edit.cursor <= cell.last_line)
+                    .unwrap();
+                let expected_id = ["b", "c", "b"][index];
+                assert_eq!(target.id, expected_id);
+                let expected_line = body
+                    .first()
+                    .map(|line| (*line).to_owned())
+                    .unwrap_or_else(|| format!("# %% [code] id={expected_id}"));
+                assert_eq!(edit.lines[edit.cursor - 1], expected_line);
+            }
+        }
     }
 
     #[test]

@@ -23,13 +23,7 @@ pub enum Request {
         action: String,
         kind: Option<String>,
     },
-    Run {
-        lines: Vec<String>,
-        line: usize,
-        all: bool,
-        backend: String,
-        path: Option<String>,
-    },
+    Run(Run),
     RestartLocal {
         path: String,
     },
@@ -59,4 +53,19 @@ pub enum Request {
     ColabList {
         path: Option<String>,
     },
+}
+
+#[derive(Deserialize)]
+pub struct Run {
+    pub all: bool,
+    #[serde(default = "default_notebook_runtime")]
+    pub notebook_runtime: u64,
+    pub lines: Vec<String>,
+    pub line: usize,
+    pub backend: String,
+    pub path: Option<String>,
+}
+
+fn default_notebook_runtime() -> u64 {
+    3600
 }

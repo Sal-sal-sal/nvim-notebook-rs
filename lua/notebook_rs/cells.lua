@@ -160,6 +160,14 @@ function M.focus(buf)
   for row = math.min(#lines, cursor), 1, -1 do
     local kind = marker.parse(lines[row])
     if colors[kind] then
+      local last = #lines
+      for next_row = row + 1, #lines do
+        if lines[next_row]:match("^# %%%% %[") then last = next_row - 1; break end
+      end
+      vim.api.nvim_buf_set_extmark(buf, focus, row - 1, 0, {
+        end_row = last, end_col = 0,
+        hl_group = "NotebookRsActiveCell", hl_eol = true, priority = 20,
+      })
       local anchor = hidden_whole(lines, row) and row or row - 1
       vim.api.nvim_buf_set_extmark(buf, focus, anchor, 0, {
         line_hl_group = "NotebookRsActiveCell",

@@ -103,8 +103,8 @@ function M.edit(action, kind)
     kind = kind,
   })
   output.replace(buf, data.lines, true)
-  cells.reset(buf)
   vim.api.nvim_win_set_cursor(0, { output.display_row(buf, data.cursor), 0 })
+  cells.reset(buf)
   require("notebook_rs.navigation").refresh(buf)
 end
 function M.run(all)
@@ -115,7 +115,8 @@ function M.run(all)
   output.changed(buf)
   cells.begin(buf, lines, line, all)
   client.request({ op = "run", lines = lines, line = line, all = all, backend = backend,
-    path = vim.b[buf].notebook_rs_path }, function(response)
+    path = vim.b[buf].notebook_rs_path,
+    notebook_runtime = require("notebook_rs.config").notebook_runtime }, function(response)
     if report(response) then
       if vim.api.nvim_buf_is_valid(buf) then
         require("notebook_rs.inline").update(buf, response.data.results or {})

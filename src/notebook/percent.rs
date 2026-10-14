@@ -50,15 +50,20 @@ pub fn parse(lines: &[String]) -> Result<Vec<Cell>> {
                 first_line: index + 1,
                 last_line: index + 1,
             });
-        } else if line.starts_with("# %% [") {
+            continue;
+        }
+        if line.starts_with("# %% [") {
             bail!(
                 "invalid cell marker on line {}: expected '# %% [code|markdown|raw] id=...'",
                 index + 1
             );
-        } else if let Some(cell) = current.as_mut() {
+        }
+        if let Some(cell) = current.as_mut() {
             cell.source.push_str(&source_line(&cell.kind, line)?);
             cell.source.push('\n');
-        } else if !line.trim().is_empty() {
+            continue;
+        }
+        if !line.trim().is_empty() {
             bail!("notebook text must start with a '# %% [type] id=...' marker");
         }
     }

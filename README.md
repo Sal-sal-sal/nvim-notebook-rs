@@ -49,6 +49,7 @@ Configure the notebook in Lua:
 ```lua
 require("notebook_rs").setup({
   distance_between_cells = 2,
+  notebook_runtime = 3600, -- Maximum seconds per Colab cell.
   cells_output_interacteable = true,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",

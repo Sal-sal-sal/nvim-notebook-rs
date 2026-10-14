@@ -33,28 +33,34 @@ impl Worker {
         Ok(self.local.get_mut(path).unwrap())
     }
 
-    fn run(
-        &mut self,
-        lines: &[String],
-        line: usize,
-        all: bool,
-        backend: &str,
-        path: &str,
-    ) -> Result<Value> {
-        let cells = notebook::parse(lines)?;
+    fn run(&mut self, request: request::Run) -> Result<Value> {
+        let request::Run {
+            all,
+            notebook_runtime,
+            lines,
+            line,
+            backend,
+            path,
+        } = request;
+        let path = path.as_deref().unwrap_or("<default>");
+        let cells = notebook::parse(&lines)?;
         let selected = notebook::select(&cells, line, all)?;
         let mut output = String::new();
         let mut results = Vec::new();
         let mut artifacts = Vec::new();
+        if notebook_runtime == 0 {
+            bail!("notebook_runtime must be greater than zero");
+        }
+
+        let timeout = notebook_runtime.to_string();
+
         for (index, cell) in selected.iter().enumerate() {
             if cell.source.trim().is_empty() {
                 continue;
             }
-            let execution = match backend {
+            let execution = match backend.as_str() {
                 "local" => self.local(path)?.execute(&cell.source)?,
-                "colab" => self.colab.run(cell, "3600")?, // that's a bad thing because if
-                // should be settingable
-                // i would train modules it would apper
+                "colab" => self.colab.run(cell, &timeout)?,
                 _ => bail!("backend must be 'local' or 'colab'"),
             };
             if all {
@@ -114,19 +120,7 @@ impl Worker {
                 };
                 Ok(json!({"lines":edited.lines,"cursor":edited.cursor}))
             }
-            Request::Run {
-                lines,
-                line,
-                all,
-                backend,
-                path,
-            } => self.run(
-                &lines,
-                line,
-                all,
-                &backend,
-                path.as_deref().unwrap_or("<default>"),
-            ),
+            Request::Run(request) => self.run(request),
             Request::RestartLocal { path } => {
                 self.local.remove(&path);
                 Ok(json!({"restarted":true}))

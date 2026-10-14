@@ -1,5 +1,6 @@
 local M = {
   distance_between_cells = 2,
+  notebook_runtime = 3600,
   cells_output_interacteable = false,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
@@ -15,6 +16,8 @@ function M.update(opts)
   local distance = opts.distance_between_cells
   local hidden = opts.nootbook_hidden_id_line
   local result = opts.nootbook_result
+  local runtime = opts.notebook_runtime
+
   if distance ~= nil then
     assert(type(distance) == "number" and distance >= 0 and distance % 1 == 0,
       "distance_between_cells must be a non-negative integer")
@@ -23,12 +26,17 @@ function M.update(opts)
     assert(type(hidden) == "boolean",
       "nootbook_hidden_id_line must be a boolean")
   end
+  if runtime ~= nil then
+    assert(type(runtime) == "number" and runtime > 0 and runtime % 1 == 0,
+      "notebook_runtime must be a positive integer")
+  end
   if result ~= nil then
     assert(vim.tbl_contains({ "nootbook", "window", "hidden" }, result),
       "nootbook_result must be 'nootbook', 'window', or 'hidden'")
   end
   if interactive ~= nil then M.cells_output_interacteable = interactive end
   M.distance_between_cells = distance or M.distance_between_cells
+  M.notebook_runtime = runtime or M.notebook_runtime
   if hidden ~= nil then M.nootbook_hidden_id_line = hidden end
   M.nootbook_result = result or M.nootbook_result
   if opts.python_lsp ~= nil then
