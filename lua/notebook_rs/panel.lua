@@ -17,6 +17,7 @@ function M.show(text, failed, failure_message)
     vim.api.nvim_buf_set_name(buf, "notebook-rs://output")
     vim.api.nvim_set_current_win(source)
   end
+  text = require("notebook_rs.output.stream").visible(text)
   local lines = vim.split(text ~= "" and text or "[No output]", "\n", { plain = true })
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false

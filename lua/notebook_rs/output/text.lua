@@ -1,3 +1,4 @@
+local stream = require("notebook_rs.output.stream")
 local M = {}
 
 function M.source_matches(source, lines, first, last)
@@ -26,7 +27,9 @@ local function content(output)
     return "ERROR " .. (output.ename or "Python"), trace:gsub("\27%[[%d;]*[A-Za-z]", ""):gsub("\r", ""),
       "NotebookRsTraceback"
   end
-  if output.output_type == "stream" then return "OUTPUT", joined(output.text), "NotebookRsOutput" end
+  if output.output_type == "stream" then
+    return "OUTPUT", stream.visible(joined(output.text)), "NotebookRsOutput"
+  end
   local data = output.data or {}
   local value = joined(data["text/plain"])
   if data["image/png"] then value = value .. "\n[Image output saved in notebook]" end
@@ -36,7 +39,7 @@ end
 
 function M.rows(outputs, media)
   local rows = {}
-  for _, output in ipairs(outputs or {}) do
+  for _, output in ipairs(stream.groups(outputs)) do
     if media == nil or M.is_media(output) == media then
       local title, value, color = content(output)
       rows[#rows + 1] = { text = "├─ " .. title .. " ─", color = output.output_type == "error"
