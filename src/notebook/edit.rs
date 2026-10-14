@@ -118,8 +118,8 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
             let original = parse(&lines).unwrap();
-            for index in 0..original.len() {
-                let edit = delete(&lines, original[index].first_line).unwrap();
+            for (index, cell) in original.iter().enumerate() {
+                let edit = delete(&lines, cell.first_line).unwrap();
                 let remaining = parse(&edit.lines).unwrap();
                 let target = remaining
                     .iter()
