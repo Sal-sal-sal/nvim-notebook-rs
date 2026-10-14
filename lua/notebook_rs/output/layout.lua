@@ -1,4 +1,5 @@
 local text = require("notebook_rs.output.text")
+local markers = require("notebook_rs.markers")
 local M = {}
 
 function M.build(source, records, prefix, enabled)
@@ -18,7 +19,7 @@ function M.build(source, records, prefix, enabled)
     end
   end
   for index, line in ipairs(source) do
-    local next_kind, next_id = line:match("^# %%%% %[(%a+)%] id=(%S+)$")
+    local next_kind, next_id = markers.parse(line)
     if next_kind then
       finish(index - 1)
       marker, kind, id = index, next_kind, next_id

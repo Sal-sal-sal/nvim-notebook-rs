@@ -1,12 +1,12 @@
 local M = {}
 local output = require("notebook_rs.output")
+local marker = require("notebook_rs.markers")
 local bindings = {}
-local kinds = { code = true, markdown = true, raw = true }
 
 local function markers(buf)
   local rows = {}
   for row, line in ipairs(output.source(buf)) do
-    if kinds[line:match("^# %%%% %[(%a+)%] id=%S+$")] then
+    if marker.parse(line) then
       rows[#rows + 1] = row
     end
   end

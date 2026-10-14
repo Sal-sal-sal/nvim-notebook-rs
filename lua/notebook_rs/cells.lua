@@ -1,4 +1,5 @@
 local M = { states = {} }
+local marker = require("notebook_rs.markers")
 local inline = require("notebook_rs.inline")
 local config = require("notebook_rs.config")
 local borders = vim.api.nvim_create_namespace("notebook_rs_cells")
@@ -61,7 +62,7 @@ function M.render(buf)
   local previous_id
   local previous_row
   for row, line in ipairs(lines) do
-    local kind, id = line:match("^# %%%% %[(%a+)%] id=(%S+)$")
+    local kind, id = marker.parse(line)
     if colors[kind] then
       if previous_kind then
         close_cell(buf, row - 2, previous_kind, previous_id, lines, previous_row + 1)
@@ -111,7 +112,7 @@ function M.begin(buf, lines, cursor, all)
   M.states[buf] = states
   local selected
   for row, line in ipairs(lines) do
-    local kind, id = line:match("^# %%%% %[(%a+)%] id=(%S+)$")
+    local kind, id = marker.parse(line)
     if kind then
       if all and kind == "code" then
         states[id] = "running"
@@ -157,7 +158,7 @@ function M.focus(buf)
   local cursor = vim.api.nvim_win_get_cursor(0)[1]
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   for row = math.min(#lines, cursor), 1, -1 do
-    local kind = lines[row]:match("^# %%%% %[(%a+)%] id=%S+$")
+    local kind = marker.parse(lines[row])
     if colors[kind] then
       local anchor = hidden_whole(lines, row) and row or row - 1
       vim.api.nvim_buf_set_extmark(buf, focus, anchor, 0, {

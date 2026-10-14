@@ -10,7 +10,7 @@ pub struct Cell {
 }
 
 fn marker(line: &str) -> Option<(String, String)> {
-    let tail = line.strip_prefix("# %% [")?;
+    let tail = line.trim_end().strip_prefix("# %% [")?;
     let (kind, rest) = tail.split_once(']')?;
     if !matches!(kind, "code" | "markdown" | "raw") {
         return None;
@@ -129,7 +129,6 @@ mod tests {
             "# %% [unknown] id=broken",
             "# %% [code]id=broken",
             "# %% [code]  id=broken",
-            "# %% [code] id=broken ",
         ];
         let positions = [0, 2, 4];
         for marker in invalid {
@@ -148,6 +147,31 @@ mod tests {
                     error.contains(&format!("invalid cell marker on line {}", index + 1)),
                     "marker {marker:?} at line {} returned {error:?}",
                     index + 1
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn accepts_trailing_marker_whitespace_and_preserves_source() {
+        for kind in ["code", "markdown", "raw"] {
+            for suffix in ["", " ", "\t", "  \t  "] {
+                let body = if kind == "code" {
+                    "print(1)  "
+                } else {
+                    "# text  "
+                };
+                let lines = vec![format!("# %% [{kind}] id=cell{suffix}"), body.to_owned()];
+                let cells = parse(&lines).unwrap();
+                assert_eq!(cells[0].id, "cell");
+                assert_eq!(cells[0].kind, kind);
+                assert_eq!(
+                    cells[0].source,
+                    if kind == "code" {
+                        "print(1)  \n"
+                    } else {
+                        "text  \n"
+                    }
                 );
             }
         }
