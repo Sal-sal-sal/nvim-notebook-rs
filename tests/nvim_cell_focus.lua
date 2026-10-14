@@ -18,14 +18,20 @@ local source = {
 
 local function active(first, last)
   local ns = vim.api.nvim_get_namespaces().notebook_rs_focus
-  local range, arrow
-  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })) do
-    if mark[4].hl_group == "NotebookRsActiveCell" then range = mark end
-    if mark[4].sign_text then arrow = mark end
+  local marks = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })
+  assert(#marks == 1 and marks[1][4].sign_text, "active cell has no indicator")
+  assert(not marks[1][4].hl_group and not marks[1][4].line_hl_group, "source lines are highlighted")
+  local borders = vim.api.nvim_get_namespaces().notebook_rs_cells
+  local top, bottom
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buf, borders, 0, -1, { details = true })) do
+    local virtual = mark[4].virt_lines or {}
+    local color = virtual[#virtual] and virtual[#virtual][1][2]
+    if color and color:match("^NotebookRsActiveBorder") then
+      if mark[4].virt_lines_above then top = mark else bottom = mark end
+    end
   end
-  assert(range and range[2] == first - 1 and range[4].end_row == last,
-    "active highlight does not cover exactly the current cell")
-  assert(range[4].hl_eol and arrow, "active cell has no full-width tint or indicator")
+  assert(top and (top[2] == first - 1 or top[2] == first) and bottom and bottom[2] == last - 1,
+    "highlighted borders do not surround exactly the current cell")
 end
 
 for _, hidden in ipairs({ true, false }) do

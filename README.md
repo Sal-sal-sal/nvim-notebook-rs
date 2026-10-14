@@ -50,11 +50,17 @@ Configure the notebook in Lua:
 require("notebook_rs").setup({
   distance_between_cells = 2,
   notebook_runtime = 3600, -- Maximum seconds per Colab cell.
+  notebook_highlight_current = true,
+  borer_highlight_colore = "auto", -- Or a custom color such as "#cdd6f4".
   cells_output_interacteable = true,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
 })
 ```
+
+`notebook_highlight_current = true` slightly brightens the current cell's borders without changing its contents.
+Set it to `false` to disable the active indicator.
+`borer_highlight_colore` accepts `"auto"` for the theme color or `"#RRGGBB"` for a custom border color.
 
 `nootbook_hidden_id_line = true` hides `# %% [code] id=...` from the editor without removing it from the notebook.
 Neovim 0.11 and newer conceal the whole line; Neovim 0.10 conceals its text but leaves an empty line.

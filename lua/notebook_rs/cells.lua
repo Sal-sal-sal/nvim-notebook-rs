@@ -3,22 +3,18 @@ local marker = require("notebook_rs.markers")
 local inline = require("notebook_rs.inline")
 local config = require("notebook_rs.config")
 local borders = vim.api.nvim_create_namespace("notebook_rs_cells")
-local focus = vim.api.nvim_create_namespace("notebook_rs_focus")
+local focus = require("notebook_rs.cells.focus")
+local frames = {}
 local markers = vim.api.nvim_create_namespace("notebook_rs_markers")
 
-local colors = {
-  code = "NotebookRsCode",
-  markdown = "NotebookRsMarkdown",
-  raw = "NotebookRsRaw",
-}
+local colors = require("notebook_rs.cells.colors")
 
 local function close_cell(buf, row, kind, id, lines, first)
   local virtual = kind == "code" and inline.virtual_lines(buf, id, lines, first, row + 1) or {}
   virtual[#virtual + 1] = { { "╰" .. string.rep("─", 55), colors[kind] } }
-  vim.api.nvim_buf_set_extmark(buf, borders, row, 0, {
-    virt_lines = virtual,
-    priority = 40,
-  })
+  local opts = { virt_lines = virtual, priority = 40 }
+  return { row = row, opts = opts, color = colors[kind],
+    id = vim.api.nvim_buf_set_extmark(buf, borders, row, 0, opts) }
 end
 
 local function hidden_whole(lines, row)
@@ -42,18 +38,21 @@ local function marker_visibility(buf, row, line, whole)
   vim.api.nvim_buf_set_extmark(buf, markers, row - 1, 0, opts)
 end
 
-for kind, target in pairs({ code = "DiagnosticInfo", markdown = "DiagnosticHint", raw = "DiagnosticWarn" }) do
-  vim.api.nvim_set_hl(0, colors[kind], { link = target, default = true })
-end
-vim.api.nvim_set_hl(0, "NotebookRsActiveCell", { link = "CursorLine", default = true })
-vim.api.nvim_set_hl(0, "NotebookRsRunning", { link = "DiagnosticWarn", default = true })
-vim.api.nvim_set_hl(0, "NotebookRsFailed", { link = "DiagnosticError", default = true })
+vim.api.nvim_create_autocmd("BufWipeout", {
+  group = vim.api.nvim_create_augroup("NotebookRsCellFrames", { clear = true }),
+  callback = function(args)
+    frames[args.buf], M.states[args.buf] = nil, nil
+    focus.reset(args.buf)
+  end,
+})
 
 function M.render(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return
   end
   require("notebook_rs.output").sync(buf, inline.records[buf] or {})
+  focus.reset(buf)
+  frames[buf] = {}
   vim.api.nvim_buf_clear_namespace(buf, borders, 0, -1)
   vim.api.nvim_buf_clear_namespace(buf, markers, 0, -1)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
@@ -65,7 +64,9 @@ function M.render(buf)
     local kind, id = marker.parse(line)
     if colors[kind] then
       if previous_kind then
-        close_cell(buf, row - 2, previous_kind, previous_id, lines, previous_row + 1)
+        local frame = frames[buf][#frames[buf]]
+        frame.last = row - 1
+        frame.bottom = close_cell(buf, row - 2, previous_kind, previous_id, lines, previous_row + 1)
       end
       count = count + 1
       previous_kind = kind
@@ -85,14 +86,12 @@ function M.render(buf)
       end
       virtual[#virtual + 1] = { { rule, color } }
       local whole = hidden_whole(lines, row)
-      vim.api.nvim_buf_set_extmark(buf, borders, whole and row or row - 1, 0, {
-        virt_lines = virtual,
-        virt_lines_above = true,
-        line_hl_group = color,
-        sign_text = "▌",
-        sign_hl_group = color,
-        priority = 40,
-      })
+      local anchor = whole and row or row - 1
+      local opts = { virt_lines = virtual, virt_lines_above = true,
+        sign_text = "▌", sign_hl_group = color, priority = 40 }
+      frames[buf][#frames[buf] + 1] = { first = row,
+        top = { row = anchor, opts = opts, color = color,
+          id = vim.api.nvim_buf_set_extmark(buf, borders, anchor, 0, opts) } }
       marker_visibility(buf, row, line, whole)
     elseif line:match("^# %%%% %[") then
       vim.api.nvim_buf_set_extmark(buf, borders, row - 1, 0, {
@@ -102,7 +101,9 @@ function M.render(buf)
     end
   end
   if previous_kind then
-    close_cell(buf, #lines - 1, previous_kind, previous_id, lines, previous_row + 1)
+    local frame = frames[buf][#frames[buf]]
+    frame.last = #lines
+    frame.bottom = close_cell(buf, #lines - 1, previous_kind, previous_id, lines, previous_row + 1)
   end
   M.focus(buf)
 end
@@ -147,37 +148,7 @@ function M.reset(buf)
 end
 
 function M.focus(buf)
-  if vim.api.nvim_get_current_buf() == buf then require("notebook_rs.output").cursor(buf) end
-  if not vim.api.nvim_buf_is_valid(buf) then
-    return
-  end
-  vim.api.nvim_buf_clear_namespace(buf, focus, 0, -1)
-  if vim.api.nvim_get_current_buf() ~= buf then
-    return
-  end
-  local cursor = vim.api.nvim_win_get_cursor(0)[1]
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  for row = math.min(#lines, cursor), 1, -1 do
-    local kind = marker.parse(lines[row])
-    if colors[kind] then
-      local last = #lines
-      for next_row = row + 1, #lines do
-        if lines[next_row]:match("^# %%%% %[") then last = next_row - 1; break end
-      end
-      vim.api.nvim_buf_set_extmark(buf, focus, row - 1, 0, {
-        end_row = last, end_col = 0,
-        hl_group = "NotebookRsActiveCell", hl_eol = true, priority = 20,
-      })
-      local anchor = hidden_whole(lines, row) and row or row - 1
-      vim.api.nvim_buf_set_extmark(buf, focus, anchor, 0, {
-        line_hl_group = "NotebookRsActiveCell",
-        sign_text = "▶",
-        sign_hl_group = colors[kind],
-        priority = 60,
-      })
-      return
-    end
-  end
+  focus.update(buf, frames[buf] or {})
 end
 
 return M

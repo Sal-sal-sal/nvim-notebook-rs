@@ -1,6 +1,8 @@
 local M = {
   distance_between_cells = 2,
   notebook_runtime = 3600,
+  notebook_highlight_current = true,
+  borer_highlight_colore = "auto",
   cells_output_interacteable = false,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
@@ -17,7 +19,16 @@ function M.update(opts)
   local hidden = opts.nootbook_hidden_id_line
   local result = opts.nootbook_result
   local runtime = opts.notebook_runtime
+  local highlight = opts.notebook_highlight_current
+  local border_color = opts.borer_highlight_colore
 
+  if highlight ~= nil then
+    assert(type(highlight) == "boolean", "notebook_highlight_current must be a boolean")
+  end
+  if border_color ~= nil then
+    assert(type(border_color) == "string" and (border_color == "auto"
+      or border_color:match("^#%x%x%x%x%x%x$")), "borer_highlight_colore must be 'auto' or '#RRGGBB'")
+  end
   if distance ~= nil then
     assert(type(distance) == "number" and distance >= 0 and distance % 1 == 0,
       "distance_between_cells must be a non-negative integer")
@@ -34,6 +45,8 @@ function M.update(opts)
     assert(vim.tbl_contains({ "nootbook", "window", "hidden" }, result),
       "nootbook_result must be 'nootbook', 'window', or 'hidden'")
   end
+  if highlight ~= nil then M.notebook_highlight_current = highlight end
+  if border_color ~= nil then M.borer_highlight_colore = border_color end
   if interactive ~= nil then M.cells_output_interacteable = interactive end
   M.distance_between_cells = distance or M.distance_between_cells
   M.notebook_runtime = runtime or M.notebook_runtime
