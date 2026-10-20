@@ -29,6 +29,9 @@ try:
         ), "Python LSP did not attach")
         for imported, prefix, typed, expected in (
             ("import torch", "torch", "ten", "tensor"),
+            ("import torchvision", "torchvision.datasets", "MN", "MNIST"),
+            ("from torchvision import transforms", "transforms", "Com", "Compose"),
+            ("from torchvision.transforms import v2", "v2", "ToI", "ToImage"),
             ("import tensorflow as tf", "tf", "con", "constant"),
             ("import tensorflow as tf", "tf.keras.layers", "De", "Dense"),
         ):
@@ -52,14 +55,20 @@ try:
                 ), flush=True)
                 raise
             print(prefix + "." + expected + ": automatic popup passed", flush=True)
-        nvim.input("<Esc>")
-        wait_for(lambda: nvim.funcs.mode() == "n", "could not leave insert mode")
-        nvim.current.buffer[:] = ["# %% [code] id=ui", "from torch import nn", "nn.Linear"]
-        nvim.current.window.cursor = (3, 8)
-        nvim.input("A(")
-        wait_for(lambda: nvim.exec_lua('return require("blink.cmp").is_signature_visible()'),
-                 "Linear parameter popup missing")
-        print("nn.Linear(: automatic parameter popup passed", flush=True)
+        for imported, expression in (
+            ("from torchvision import datasets", "datasets.MNIST"),
+            ("from torch import nn", "nn.Linear"),
+        ):
+            nvim.input("<Esc>")
+            wait_for(lambda: nvim.funcs.mode() == "n", "could not leave insert mode")
+            wait_for(lambda: not nvim.exec_lua('return require("blink.cmp").is_signature_visible()'),
+                     "previous parameter popup stayed visible")
+            nvim.current.buffer[:] = ["# %% [code] id=ui", imported, expression]
+            nvim.current.window.cursor = (3, len(expression) - 1)
+            nvim.input("A(")
+            wait_for(lambda: nvim.exec_lua('return require("blink.cmp").is_signature_visible()'),
+                     expression + " parameter popup missing")
+            print(expression + "(: automatic parameter popup passed", flush=True)
 finally:
     try:
         nvim.command("qa!")

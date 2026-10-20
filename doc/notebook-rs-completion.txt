@@ -26,7 +26,11 @@ Configure the interpreter used for analysis:
       },
     })
 <
-Install torch, tensorflow, numpy, and other required libraries in that environment.
+Install torch, torchvision, tensorflow, numpy, and other required libraries there.
+Torchvision is a separate package; installing torch alone does not provide it.
+If torchvision runs in Colab but Pyright reports an unresolved import, install a
+compatible torchvision version in the local python_lsp.python_path environment.
+Restart the Python language server or open a fresh Neovim session after installation.
 The analysis interpreter does not change your selected notebook execution backend.
 Without python_path, existing server settings or NVIM_NOTEBOOK_PYTHON are used.
 The notebook keeps its real .ipynb name and its editable cell source.

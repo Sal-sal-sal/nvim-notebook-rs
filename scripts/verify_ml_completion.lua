@@ -12,6 +12,10 @@ end, 50), "Python LSP did not attach")
 local probes = {
   { "import torch", "torch.", "tensor" },
   { "from torch import nn", "nn.", "Linear" },
+  { "import torchvision", "torchvision.datasets.MN", "MNIST" },
+  { "from torchvision import transforms", "transforms.Com", "Compose" },
+  { "from torchvision.transforms import v2", "v2.ToI", "ToImage" },
+  { "from torchvision import models", "models.resnet", "resnet18" },
   { "import torch", "torch.optim.", "Adam" },
   { "import tensorflow as tf", "tf.", "constant" },
   { "import tensorflow as tf", "tf.keras.layers.", "Dense" },
@@ -29,7 +33,8 @@ for _, probe in ipairs(probes) do
       names[#names + 1] = item.label
     end
   end
-  assert(vim.tbl_contains(names, probe[3]), probe[2] .. probe[3] .. " completion missing")
-  print(probe[2] .. probe[3] .. ": passed (" .. #names .. " suggestions)")
+  local expression = (probe[2]:match("^(.*%.)") or "") .. probe[3]
+  assert(vim.tbl_contains(names, probe[3]), expression .. " completion missing")
+  print(expression .. ": passed (" .. #names .. " suggestions)")
 end
 vim.fn.delete(path)
