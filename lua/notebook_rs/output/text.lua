@@ -32,7 +32,7 @@ local function content(output)
   end
   local data = output.data or {}
   local value = joined(data["text/plain"])
-  if data["image/png"] then value = value .. "\n[Image output saved in notebook]" end
+  if data["image/png"] or data["image/jpeg"] then value = value .. "\n[Image output saved in notebook]" end
   if data["text/html"] then value = value .. "\n[HTML output saved in notebook]" end
   return "RESULT", value, "NotebookRsOutput"
 end

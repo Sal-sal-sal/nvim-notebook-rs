@@ -30,6 +30,14 @@ Configure with require("notebook_rs").setup({ ... }).
         Boolean; true makes inline text output navigable with j/k, search,
         paging, and selection. Images stay virtual. See |notebook-rs-output|.
 
+    image_output = true
+        Boolean; show inline PNG/JPEG images through configured image.nvim.
+        Without image.nvim, a placeholder offers :NotebookOpenChart instead.
+
+    image_max_height = 20
+        Positive integer; maximum reserved terminal rows per inline image.
+        Applies only to nootbook_result = "nootbook".
+
     nootbook_result = "nootbook"
         "nootbook": inline virtual cell output.
         "window": bottom output panel.

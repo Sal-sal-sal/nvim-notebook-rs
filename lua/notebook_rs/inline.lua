@@ -41,8 +41,15 @@ function M.virtual_lines(buf, id, lines, first, last)
   end
   local virtual = {}
   local media = config.cells_output_interacteable and true or nil
-  for _, row in ipairs(text.rows(record.outputs, media)) do
-    virtual[#virtual + 1] = { { row.text, row.color } }
+  local number = 0
+  for _, item in ipairs(require("notebook_rs.output.stream").groups(record.outputs)) do
+    local image = (item.data or {})["image/png"] or (item.data or {})["image/jpeg"]
+    if image then number = number + 1 end
+    if not image or not require("notebook_rs.charts").append(buf, item, virtual, last - 1, number) then
+      for _, row in ipairs(text.rows({ item }, media)) do
+        virtual[#virtual + 1] = { { row.text, row.color } }
+      end
+    end
   end
   return virtual
 end

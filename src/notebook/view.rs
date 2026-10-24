@@ -13,10 +13,8 @@ pub struct OpenView {
 fn display_output(output: &Value) -> Value {
     let mut shown = output.clone();
     if let Some(data) = shown.get_mut("data").and_then(Value::as_object_mut) {
-        for format in ["image/png", "text/html"] {
-            if data.contains_key(format) {
-                data.insert(format.to_owned(), Value::Bool(true));
-            }
+        if data.contains_key("text/html") {
+            data.insert("text/html".to_owned(), Value::Bool(true));
         }
     }
     shown

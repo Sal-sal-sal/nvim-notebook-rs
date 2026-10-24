@@ -113,7 +113,12 @@ Output-only edits are rejected, and yanking only output removes its display pref
 Images and HTML keep their virtual display.
 See `:help notebook-rs-output` or the [Russian output guide](docs/guide.ru.md#как-двигаться-по-output).
 Saved output appears again when the notebook is reopened, and changing a cell clears only its own stale output.
-Images and HTML appear as inline placeholders; use `:NotebookOpenArtifact` to open a generated file after a run.
+PNG and JPEG charts appear below their cells when [image.nvim](https://github.com/3rd/image.nvim) is configured in a compatible terminal.
+See the [chart setup and troubleshooting guide](docs/charts.ru.md).
+`:NotebookOpenChart` opens the current cell's chart in the system image viewer, including images from saved notebooks.
+Use `:NotebookOpenChart 2` for the second image in that cell.
+Without an image renderer, charts show an actionable placeholder.
+HTML remains a placeholder; use `:NotebookOpenArtifact` to open a generated file after a run.
 Use `:write` to save edits to the original `.ipynb` file.
 Cell results are held in the buffer until `:write` saves them to the original `.ipynb` file.
 Unchanged cells keep their metadata and outputs; editing a code cell clears its stale output.

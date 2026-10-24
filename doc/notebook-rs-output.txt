@@ -29,8 +29,17 @@ Cell output remains structured notebook data when saving with :write.
 The original stream chunks and control characters are retained in saved notebooks.
 Display rows are excluded from Python execution and stored source.
 Changing source clears its stale output while retaining other cells.
-Images and HTML remain virtual media placeholders; use
-:NotebookOpenArtifact to open generated artifacts.
+PNG and JPEG images appear as virtual media below their source cells when
+image.nvim is configured in a compatible terminal.
+For Kitty, configure image.nvim with backend = "kitty" and
+processor = "magick_cli".
+Notebook charts use explicit cell sizes and window clipping on Retina too.
+Set image_output = false to disable inline images, or image_max_height = 20
+to choose the maximum reserved rows per image.
+:NotebookOpenChart opens the first image of the current cell in the system
+viewer; :NotebookOpenChart 2 opens the second.
+This also works for saved notebooks and without image.nvim.
+HTML remains a placeholder; :NotebookOpenArtifact opens generated artifacts.
 
 Set cells_output_interacteable = false to restore virtual text output.
 It affects only nootbook_result = "nootbook"; "window" and "hidden"

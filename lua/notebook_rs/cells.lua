@@ -1,6 +1,7 @@
 local M = { states = {} }
 local marker = require("notebook_rs.markers")
 local inline = require("notebook_rs.inline")
+local charts = require("notebook_rs.charts")
 local config = require("notebook_rs.config")
 local borders = vim.api.nvim_create_namespace("notebook_rs_cells")
 local focus = require("notebook_rs.cells.focus")
@@ -51,6 +52,7 @@ function M.render(buf)
     return
   end
   require("notebook_rs.output").sync(buf, inline.records[buf] or {})
+  charts.begin(buf)
   focus.reset(buf)
   frames[buf] = {}
   vim.api.nvim_buf_clear_namespace(buf, borders, 0, -1)
@@ -106,6 +108,7 @@ function M.render(buf)
     frame.bottom = close_cell(buf, #lines - 1, previous_kind, previous_id, lines, previous_row + 1)
   end
   M.focus(buf)
+  charts.finish(buf)
 end
 
 function M.begin(buf, lines, cursor, all)

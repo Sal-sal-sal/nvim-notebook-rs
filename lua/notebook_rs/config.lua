@@ -4,6 +4,8 @@ local M = {
   notebook_highlight_current = true,
   borer_highlight_colore = "auto",
   cells_output_interacteable = false,
+  image_output = true,
+  image_max_height = 20,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
   python_lsp = { enabled = true, server = "pyright" },
@@ -11,6 +13,15 @@ local M = {
 
 function M.update(opts)
   opts = opts or {}
+  if opts.image_output ~= nil then
+    assert(type(opts.image_output) == "boolean", "image_output must be a boolean")
+    M.image_output = opts.image_output
+  end
+  if opts.image_max_height ~= nil then
+    assert(type(opts.image_max_height) == "number" and opts.image_max_height > 0
+      and opts.image_max_height % 1 == 0, "image_max_height must be a positive integer")
+    M.image_max_height = opts.image_max_height
+  end
   local interactive = opts.cells_output_interacteable
   if interactive ~= nil then
     assert(type(interactive) == "boolean", "cells_output_interacteable must be a boolean")
