@@ -66,6 +66,12 @@ function M.open(number)
 end
 
 local group = vim.api.nvim_create_augroup("NotebookRsCharts", { clear = true })
+require("notebook_rs.charts.overlap").watch(function()
+  for buf in pairs(M.slots) do M.finish(buf) end
+end, function()
+  for _, slots in pairs(M.slots) do if #slots > 0 then return true end end
+  return false
+end)
 vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "WinClosed", "TabEnter", "WinResized", "WinScrolled" }, {
   group = group,
   callback = function()

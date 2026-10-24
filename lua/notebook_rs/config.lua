@@ -10,10 +10,27 @@ local M = {
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
   python_lsp = { enabled = true, server = "pyright" },
+  notebook = { output = { head = 30 } },
 }
+
+local function output_head(opts)
+  if opts.notebook == nil then return end
+  assert(type(opts.notebook) == "table", "notebook must be a table")
+  local output = opts.notebook.output
+  if output == nil then return end
+  assert(type(output) == "table", "notebook.output must be a table")
+  local head = output.head
+  if head ~= nil then
+    assert(head == false or (type(head) == "number" and head > 0 and head % 1 == 0),
+      "notebook.output.head must be a positive integer or false")
+  end
+  return head
+end
 
 function M.update(opts)
   opts = opts or {}
+  local head = output_head(opts)
+  if head ~= nil then M.notebook.output.head = head end
   if opts.image_output ~= nil then
     assert(type(opts.image_output) == "boolean", "image_output must be a boolean")
     M.image_output = opts.image_output

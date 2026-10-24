@@ -4,7 +4,8 @@ package.loaded.image={from_file=function(path,opts)
   return {original_path=path,buffer=opts.buffer,window=opts.window,render=function()end,clear=function()end}
 end}
 vim.api.nvim_list_uis=function()return {{}}end
-require('notebook_rs').setup({cells_output_interacteable=true,python_lsp={enabled=false}})
+require('notebook_rs').setup({cells_output_interacteable=true,python_lsp={enabled=false},
+  notebook={output={head=false}}})
 local repr={}
 for i=1,100 do repr[#repr+1]='<matplotlib.lines.Line2D at 0x'..string.format('%x',i)..'>' end
 local png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUA'..

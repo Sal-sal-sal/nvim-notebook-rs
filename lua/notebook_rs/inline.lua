@@ -41,11 +41,11 @@ function M.anchor(buf, row, id)
 end
 
 local function ordered(outputs)
-  local grouped = require("notebook_rs.output.stream").groups(outputs)
+  local grouped = require("notebook_rs.output.text").blocks(outputs)
   if require("notebook_rs.config").image_output_position ~= "before_text" then return grouped end
   local images, other = {}, {}
   for _, item in ipairs(grouped) do
-    local data = item.data or {}
+    local data = item.output.data or {}
     local target = (data["image/png"] or data["image/jpeg"]) and images or other
     target[#target + 1] = item
   end
@@ -69,11 +69,13 @@ function M.virtual_lines(buf, id, lines, first, last, anchor)
   local virtual = {}
   local media = config.cells_output_interacteable and true or nil
   local number = 0
-  for _, item in ipairs(ordered(record.outputs)) do
+  for _, block in ipairs(ordered(record.outputs)) do
+    local item = block.output
     local image = (item.data or {})["image/png"] or (item.data or {})["image/jpeg"]
     if image then number = number + 1 end
-    if not image or not require("notebook_rs.charts").append(buf, item, virtual, anchor or last - 1, number) then
-      for _, row in ipairs(text.rows({ item }, media)) do
+    if (not image or not require("notebook_rs.charts").append(buf, item, virtual, anchor or last - 1, number))
+      and (media == nil or text.is_media(item) == media) then
+      for _, row in ipairs(block.rows) do
         virtual[#virtual + 1] = { { row.text, row.color } }
       end
     end

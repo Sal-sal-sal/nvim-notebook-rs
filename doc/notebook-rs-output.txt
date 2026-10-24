@@ -6,6 +6,7 @@ Enable textual inline output navigation: >lua
     require("notebook_rs").setup({
       cells_output_interacteable = true,
       nootbook_result = "nootbook",
+      notebook = { output = { head = 30 } },
     })
 <
 The default for cells_output_interacteable is false.
@@ -25,6 +26,18 @@ Consecutive chunks from the same stdout or stderr stream share one OUTPUT block.
 Carriage returns update the current line, so completed progress bars appear once.
 Backspaces and common ANSI formatting or line-clear controls are handled for display.
 
+By default only the first 30 text content lines of each cell are displayed.
+The final row reports how many additional lines are hidden.
+The limit is shared across that cell's streams, results, and tracebacks.
+Headers and images do not count toward it.
+Configure notebook.output.head in setup: >lua
+    require("notebook_rs").setup({ notebook = { output = { head = 50 } } })
+    -- To show all text:
+    require("notebook_rs").setup({ notebook = { output = { head = false } } })
+<
+This affects navigable and virtual inline output, and updates open notebooks.
+The separate bottom output panel retains its full text.
+
 Cell output remains structured notebook data when saving with :write.
 The original stream chunks and control characters are retained in saved notebooks.
 Display rows are excluded from Python execution and stored source.
@@ -34,6 +47,8 @@ image.nvim is configured in a compatible terminal.
 For Kitty, configure image.nvim with backend = "kitty" and
 processor = "magick_cli".
 Notebook charts use explicit cell sizes and window clipping on Retina too.
+Charts temporarily hide when overlapping floating hints or completion menus.
+They reappear when the popup moves away or closes, including which-key.
 Images appear immediately below code, before potentially long text results.
 Set image_output_position = "after_text" to restore text before images.
 Set image_output = false to disable inline images, or image_max_height = 20

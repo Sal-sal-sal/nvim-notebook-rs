@@ -53,6 +53,7 @@ require("notebook_rs").setup({
   notebook_highlight_current = true,
   borer_highlight_colore = "auto", -- Or a custom color such as "#cdd6f4".
   cells_output_interacteable = true,
+  notebook = { output = { head = 30 } }, -- Use false to show all text output.
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
 })
@@ -110,11 +111,15 @@ With the default `nootbook_result = "nootbook"`, Python and Colab output and tra
 By default these are virtual lines; set `cells_output_interacteable = true` to navigate text results with the cursor, search, paging, and visual selection.
 Text display rows remain separate from Python source; `:write` stores the original structured notebook outputs.
 Output-only edits are rejected, and yanking only output removes its display prefixes.
+`notebook.output.head = 30` shows the first 30 text content lines per cell, followed by the number of hidden lines.
+Headers and images do not count toward the limit; full output is still saved in `.ipynb`.
+Set `notebook = { output = { head = false } }` in `setup` to show all text, or choose another positive integer.
 Images and HTML keep their virtual display.
 See `:help notebook-rs-output` or the [Russian output guide](docs/guide.ru.md#как-двигаться-по-output).
 Saved output appears again when the notebook is reopened, and changing a cell clears only its own stale output.
 PNG and JPEG charts appear below their cells when [image.nvim](https://github.com/3rd/image.nvim) is configured in a compatible terminal.
 Charts appear before text results so long Matplotlib object lists cannot push them out of view.
+Charts that overlap floating hints or completion menus temporarily hide and return when the popup moves away or closes.
 Set `image_output_position = "after_text"` to place images after text instead.
 See the [chart setup and troubleshooting guide](docs/charts.ru.md).
 `:NotebookOpenChart` opens the current cell's chart in the system image viewer, including images from saved notebooks.

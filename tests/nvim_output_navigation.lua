@@ -2,7 +2,8 @@ local root = assert(vim.env.NOTEBOOK_RS_ROOT)
 vim.opt.rtp:append(root)
 vim.g.notebook_rs_bin = assert(vim.env.NOTEBOOK_RS_BIN)
 local plugin = require("notebook_rs")
-plugin.setup({ cells_output_interacteable = true, python_lsp = { enabled = false } })
+plugin.setup({ cells_output_interacteable = true, python_lsp = { enabled = false },
+  notebook = { output = { head = false } } })
 local projection = require("notebook_rs.output")
 local path = vim.fn.tempname() .. ".ipynb"
 vim.cmd("NotebookNew " .. vim.fn.fnameescape(path))

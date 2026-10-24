@@ -37,17 +37,39 @@ local function content(output)
   return "RESULT", value, "NotebookRsOutput"
 end
 
+function M.blocks(outputs)
+  local blocks, hidden, tail = {}, 0, nil
+  local remaining = require("notebook_rs.config").notebook.output.head or math.huge
+  for _, output in ipairs(stream.groups(outputs)) do
+    local block = { output = output, rows = {} }
+    blocks[#blocks + 1] = block
+    local title, value, color = content(output)
+    local parts = vim.split(value, "\n", { plain = true })
+    if parts[#parts] == "" then table.remove(parts) end
+    local image = (output.data or {})["image/png"] or (output.data or {})["image/jpeg"]
+    local count = image and #parts or math.min(remaining, #parts)
+    if not image then
+      remaining, hidden, tail = remaining - count, hidden + #parts - count, block
+    end
+    if count > 0 or #parts == 0 then
+      block.rows[1] = { text = "├─ " .. title .. " ─", color = output.output_type == "error"
+        and "NotebookRsFailed" or "NotebookRsOutput" }
+      for index = 1, count do
+        block.rows[#block.rows + 1] = { text = "│ " .. parts[index], color = color }
+      end
+    end
+  end
+  if hidden > 0 then
+    tail.rows[#tail.rows + 1] = { text = ("│ … %d more lines (notebook.output.head)"):format(hidden),
+      color = "Comment" }
+  end
+  return blocks
+end
+
 function M.rows(outputs, media)
   local rows = {}
-  for _, output in ipairs(stream.groups(outputs)) do
-    if media == nil or M.is_media(output) == media then
-      local title, value, color = content(output)
-      rows[#rows + 1] = { text = "├─ " .. title .. " ─", color = output.output_type == "error"
-        and "NotebookRsFailed" or "NotebookRsOutput" }
-      local parts = vim.split(value, "\n", { plain = true })
-      if parts[#parts] == "" then table.remove(parts) end
-      for _, line in ipairs(parts) do rows[#rows + 1] = { text = "│ " .. line, color = color } end
-    end
+  for _, block in ipairs(M.blocks(outputs)) do
+    if media == nil or M.is_media(block.output) == media then vim.list_extend(rows, block.rows) end
   end
   return rows
 end

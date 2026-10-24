@@ -1,6 +1,7 @@
 local M = {}
 local active = {}
 local failed = {}
+local overlap = require("notebook_rs.charts.overlap")
 
 function M.available(path)
   if path and failed[path] then return false end
@@ -45,6 +46,7 @@ function M.sync(buf, slots)
             if ok and created then
               image = created
               ok = pcall(require("notebook_rs.charts.kitty").attach, image)
+              if ok then ok = pcall(overlap.attach, image) end
             end
             if not ok or not image then
               failed[slot.path], retry_layout = true, true
@@ -53,6 +55,7 @@ function M.sync(buf, slots)
             active[key] = image
           end
           if image then
+            overlap.clear(image)
             local row, offset = require("notebook_rs.charts.geometry").anchor(buf, win, slot)
             image.render_offset_top = offset
             local ok = pcall(image.render, image, { x = 0, y = row, width = width, height = slot.height })
