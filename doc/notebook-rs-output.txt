@@ -34,6 +34,8 @@ image.nvim is configured in a compatible terminal.
 For Kitty, configure image.nvim with backend = "kitty" and
 processor = "magick_cli".
 Notebook charts use explicit cell sizes and window clipping on Retina too.
+Images appear immediately below code, before potentially long text results.
+Set image_output_position = "after_text" to restore text before images.
 Set image_output = false to disable inline images, or image_max_height = 20
 to choose the maximum reserved rows per image.
 :NotebookOpenChart opens the first image of the current cell in the system

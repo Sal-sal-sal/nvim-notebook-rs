@@ -11,7 +11,12 @@ local markers = vim.api.nvim_create_namespace("notebook_rs_markers")
 local colors = require("notebook_rs.cells.colors")
 
 local function close_cell(buf, row, kind, id, lines, first)
-  local virtual = kind == "code" and inline.virtual_lines(buf, id, lines, first, row + 1) or {}
+  local anchor = inline.anchor(buf, row, id)
+  local virtual = kind == "code" and inline.virtual_lines(buf, id, lines, first, row + 1, anchor) or {}
+  if anchor ~= row and #virtual > 0 then
+    vim.api.nvim_buf_set_extmark(buf, borders, anchor, 0, { virt_lines = virtual, priority = 40 })
+    virtual = {}
+  end
   virtual[#virtual + 1] = { { "╰" .. string.rep("─", 55), colors[kind] } }
   local opts = { virt_lines = virtual, priority = 40 }
   return { row = row, opts = opts, color = colors[kind],

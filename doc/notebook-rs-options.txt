@@ -34,6 +34,11 @@ Configure with require("notebook_rs").setup({ ... }).
         Boolean; show inline PNG/JPEG images through configured image.nvim.
         Without image.nvim, a placeholder offers :NotebookOpenChart instead.
 
+    image_output_position = "before_text"
+        "before_text": show images immediately below code, before text results.
+        "after_text": show images after text results.
+        Text results remain navigable and are saved unchanged in either mode.
+
     image_max_height = 20
         Positive integer; maximum reserved terminal rows per inline image.
         Applies only to nootbook_result = "nootbook".

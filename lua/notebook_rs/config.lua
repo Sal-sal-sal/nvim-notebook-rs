@@ -5,6 +5,7 @@ local M = {
   borer_highlight_colore = "auto",
   cells_output_interacteable = false,
   image_output = true,
+  image_output_position = "before_text",
   image_max_height = 20,
   nootbook_hidden_id_line = true,
   nootbook_result = "nootbook",
@@ -16,6 +17,11 @@ function M.update(opts)
   if opts.image_output ~= nil then
     assert(type(opts.image_output) == "boolean", "image_output must be a boolean")
     M.image_output = opts.image_output
+  end
+  if opts.image_output_position ~= nil then
+    assert(vim.tbl_contains({ "before_text", "after_text" }, opts.image_output_position),
+      "image_output_position must be 'before_text' or 'after_text'")
+    M.image_output_position = opts.image_output_position
   end
   if opts.image_max_height ~= nil then
     assert(type(opts.image_max_height) == "number" and opts.image_max_height > 0

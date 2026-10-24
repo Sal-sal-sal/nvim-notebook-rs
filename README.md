@@ -114,6 +114,8 @@ Images and HTML keep their virtual display.
 See `:help notebook-rs-output` or the [Russian output guide](docs/guide.ru.md#как-двигаться-по-output).
 Saved output appears again when the notebook is reopened, and changing a cell clears only its own stale output.
 PNG and JPEG charts appear below their cells when [image.nvim](https://github.com/3rd/image.nvim) is configured in a compatible terminal.
+Charts appear before text results so long Matplotlib object lists cannot push them out of view.
+Set `image_output_position = "after_text"` to place images after text instead.
 See the [chart setup and troubleshooting guide](docs/charts.ru.md).
 `:NotebookOpenChart` opens the current cell's chart in the system image viewer, including images from saved notebooks.
 Use `:NotebookOpenChart 2` for the second image in that cell.

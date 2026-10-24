@@ -25,6 +25,7 @@ return {
     opts = {
       cells_output_interacteable = true,
       image_output = true,
+      image_output_position = "before_text",
       image_max_height = 20,
     },
     config = function(_, opts)
@@ -68,6 +69,9 @@ plt.show()
 `image_max_height = 20` резервирует до 20 строк на каждую картинку.
 Увеличь значение для более крупного графика.
 `image_output = false` отключает показ картинок внутри редактора.
+По умолчанию `image_output_position = "before_text"` помещает картинки сразу под кодом, перед текстовыми результатами.
+Длинный список `Line2D` остаётся доступен ниже картинки и сохраняется в notebook без изменений.
+`image_output_position = "after_text"` возвращает показ картинки после текста.
 Изображения сохраняются в `.ipynb` при `:write` при любом режиме отображения.
 
 `:NotebookOpenChart` открывает первую картинку текущей ячейки в системном просмотрщике.
@@ -77,7 +81,10 @@ plt.show()
 ## Если виден только текст
 
 Если появляется `[<matplotlib.lines.Line2D ...>]`, это текстовое представление результата `plt.plot`.
-Сам график должен находиться ниже этого текста.
+Сам график по умолчанию находится перед этим текстом, сразу под кодом ячейки.
+Если `res.shape == (1, 10)`, Matplotlib рисует десять серий по одной точке, поэтому без маркеров видны только оси.
+Для десяти значений одного объекта используй `plt.plot(tnp(res).reshape(-1), marker="o")`.
+Подробнее: [двумерные массивы в `plot`](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html).
 Если видна строка `Image output saved in notebook`, выполни `:NotebookOpenChart` и проверь настройку `image.nvim`, Kitty и наличие `magick` в `PATH`.
 Если картинки нет и команда сообщает `No chart`, выполни ячейку с `plt.show()` и проверь, что выполнение завершилось без ошибки.
 `nootbook_result = "window"` и `"hidden"` не показывают графики под ячейками; для этого выбери `"nootbook"`.
