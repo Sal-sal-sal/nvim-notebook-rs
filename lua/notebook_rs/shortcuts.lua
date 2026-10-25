@@ -134,6 +134,7 @@ local actions = {
   { key = "c", label = "Connect to session", run = connect },
   { key = "s", label = "Connection status", run = command("colab_status") },
   { key = "p", label = "List sessions", run = command("colab_sessions") },
+  { key = "j", label = "Request journal", run = function() require("notebook_rs.journal").open() end },
   { key = "r", label = "Restart session", run = command("colab_restart") },
   { key = "u", label = "Open session URL", run = command("colab_url") },
   { key = "X", label = "Stop session", run = command("colab_stop") },

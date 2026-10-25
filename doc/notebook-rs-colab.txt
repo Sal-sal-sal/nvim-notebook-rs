@@ -12,6 +12,7 @@ The extension does not manage OAuth tokens.
         Availability and allocation belong to the Colab account.
 :NotebookColabConnect {name} Connect to an existing named session.
 :NotebookColabSessions      List sessions known to the CLI.
+:NotebookColabJournal       Open the persistent request/return journal.
 :NotebookColabStatus        Check connection and execute a kernel probe.
 :NotebookColabRestart       Restart the selected remote kernel.
 :NotebookColabStop          Stop the selected session.
@@ -32,5 +33,21 @@ Python exceptions appear as cell failures even when the CLI exits zero.
 A failed Python cell does not by itself disconnect the remote session.
 One long-running cell delays other requests to the same worker.
 Saving uses a separate worker and remains available during execution.
+
+REQUEST JOURNAL
+
+<leader>ccj opens the journal in a read-only split, newest request first.
+It retains the last 100 Colab requests across notebook and Neovim sessions.
+Each entry includes time, duration, request parameters, and the actual return.
+Running requests appear before their returns are available.
+Python failures are errors even when the Colab CLI exits zero.
+If the worker exits without returning, the entry is marked INTERRUPTED.
+Use Enter to fold/unfold, r to refresh, / to search, and q to return.
+Reading the journal uses a separate worker, so a busy cell does not block it.
+Local execution and journal reads are excluded; interactive login is separate.
+The path is stdpath("state")/notebook-rs/colab-journal.json by default.
+NVIM_NOTEBOOK_COLAB_JOURNAL overrides it before the worker starts.
+The full request and return are stored; base64 images are abbreviated in the UI.
+See docs/journal.ru.md for a Russian walkthrough.
 
 vim:tw=78:ts=8:noet:ft=help:norl:

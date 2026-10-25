@@ -133,6 +133,7 @@ impl Worker {
                 execution(self.colab.connect(&session)?, self.colab.session.as_deref())
             }
             Request::ColabStatus => execution(self.colab.status()?, self.colab.session.as_deref()),
+            Request::ColabJournal => crate::journal::snapshot(),
             Request::ColabStop => execution(self.colab.stop()?, self.colab.session.as_deref()),
             Request::ColabSessions => {
                 let result = self.colab.sessions()?;

@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -16,6 +17,12 @@ def run(command, env=None, timeout=600):
 def main():
     env = os.environ.copy()
     env.setdefault("NVIM_NOTEBOOK_PYTHON", sys.executable)
+    with tempfile.TemporaryDirectory(prefix="notebook-rs-verify-") as journal:
+        env["NVIM_NOTEBOOK_COLAB_JOURNAL"] = str(Path(journal) / "journal.json")
+        verify(env)
+
+
+def verify(env):
     run(["cargo", "fmt", "--all", "--check"], env)
     run(["cargo", "clippy", "--all-targets", "--locked", "--", "-D", "warnings"], env)
     run(["cargo", "test", "--locked"], env)

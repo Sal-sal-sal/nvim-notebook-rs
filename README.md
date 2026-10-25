@@ -163,6 +163,7 @@ Direct shortcuts use the same prefix:
 | `<leader>ccc` | Connect to a session |
 | `<leader>ccs` | Check connection status |
 | `<leader>ccp` | List sessions |
+| `<leader>ccj` | Open the request/return journal |
 | `<leader>ccr` | Restart the session |
 | `<leader>ccu` | Get the session URL |
 | `<leader>ccX` | Stop the session |
@@ -170,6 +171,12 @@ Direct shortcuts use the same prefix:
 | `<leader>cci` | Install packages |
 | `<leader>ccf` | List remote files |
 | `<leader>ccU` / `<leader>ccD` | Upload / download a file |
+
+`:NotebookColabJournal` or `<leader>ccj` opens the last 100 Colab requests and their returns, newest first.
+The journal includes parameters, code, results, errors, timestamps, and durations, and persists across Neovim sessions.
+Use `Enter` to fold a request, `r` to refresh even during a running cell, and `q` to return to the notebook.
+It is stored in `stdpath("state")/notebook-rs/colab-journal.json`; its exact path is displayed in the journal.
+See the [Russian journal guide](docs/journal.ru.md).
 
 If the CLI asks for an authorization code, complete `:NotebookColabLogin` first.
 Enter authorization codes only in that terminal, never in a notebook cell or chat.

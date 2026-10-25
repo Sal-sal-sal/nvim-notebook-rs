@@ -34,6 +34,11 @@ local function deliver(line)
     vim.notify("Notebook worker sent invalid JSON", vim.log.levels.ERROR)
     return
   end
+  if response.journal_error then
+    vim.schedule(function()
+      vim.notify("Could not save Colab journal: " .. response.journal_error, vim.log.levels.WARN)
+    end)
+  end
   local callback = M.pending[response.id]
   M.pending[response.id] = nil
   if callback then
@@ -49,6 +54,7 @@ local function start()
   end
   M.fragment = ""
   job = vim.fn.jobstart({ binary(), "worker" }, {
+    env = require("notebook_rs.journal").environment(),
     stdout_buffered = false,
     on_stdout = function(_, data)
       if not data then
@@ -87,6 +93,7 @@ end
 function M.once(payload)
   payload.id = 1
   local result = vim.system({ binary(), "worker" }, {
+    env = require("notebook_rs.journal").environment(),
     stdin = vim.json.encode(payload) .. "\n",
     text = true,
   }):wait(30000)

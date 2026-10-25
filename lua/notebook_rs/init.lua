@@ -86,6 +86,7 @@ function M.setup(opts)
   })
   command("NotebookOpenArtifact", function(opts) ui.open_artifact(opts.args) end, { nargs = "?" })
   command("NotebookOpenChart", function(opts) require("notebook_rs.charts").open(opts.args) end, { nargs = "?" })
+  command("NotebookColabJournal", function() require("notebook_rs.journal").open() end, {})
   command("NotebookBackend", function(opts) ui.backend(opts.args) end, {
     nargs = 1,
     complete = function() return { "local", "colab" } end,

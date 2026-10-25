@@ -37,6 +37,7 @@ pub enum Request {
     ColabStatus,
     ColabStop,
     ColabSessions,
+    ColabJournal,
     ColabRestart,
     ColabUrl,
     ColabInstall {

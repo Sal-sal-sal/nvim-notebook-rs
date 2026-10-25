@@ -72,6 +72,7 @@ vim.g.notebook_rs_bin        Explicit Rust worker path.
 NVIM_NOTEBOOK_PYTHON         Python executable (default: python3).
 NVIM_NOTEBOOK_COLAB          Colab CLI executable (default: colab).
 NVIM_NOTEBOOK_COLAB_CA_BUNDLE Optional trusted CA bundle for Colab TLS.
+NVIM_NOTEBOOK_COLAB_JOURNAL  Override the persistent Colab journal file path.
 
 The worker is discovered on PATH or in the plugin's target/release directory.
 The target/debug directory is also supported during development.

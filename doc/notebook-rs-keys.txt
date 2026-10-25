@@ -22,6 +22,7 @@ Colab shortcuts:
 <leader>ccc      Connect to a named session.
 <leader>ccs      Check the selected connection and kernel.
 <leader>ccp      List active sessions.
+<leader>ccj      Open the last 100 Colab requests and their returns.
 <leader>ccr      Restart the selected kernel.
 <leader>ccu      Open the selected session URL.
 <leader>ccX      Stop the selected session.
