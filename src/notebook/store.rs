@@ -1,9 +1,10 @@
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 
 use super::{
+    ids,
     percent::{parse, Cell},
     results::{self, CellResult},
     template,
@@ -39,14 +40,6 @@ pub(super) fn read(path: &Path) -> Result<Value> {
     Ok(notebook)
 }
 
-fn old_cell<'a>(old: &'a Value, id: &str, index: usize) -> Option<&'a Value> {
-    let cells = old["cells"].as_array()?;
-    cells
-        .iter()
-        .find(|cell| cell["id"].as_str() == Some(id))
-        .or_else(|| cells.get(index).filter(|cell| cell.get("id").is_none()))
-}
-
 fn as_json_cell(cell: &Cell, old: Option<&Value>) -> Result<Value> {
     let mut result = old.cloned().unwrap_or_else(|| json!({"metadata": {}}));
     let previous_source = old.map(source).transpose()?;
@@ -78,21 +71,36 @@ pub fn save(path: &Path, lines: &[String]) -> Result<usize> {
 
 pub fn save_with_results(path: &Path, lines: &[String], results: &[CellResult]) -> Result<usize> {
     let parsed = parse(lines)?;
+    let target;
+    let path = if path.is_symlink() {
+        target = fs::canonicalize(path).with_context(|| format!("resolving {}", path.display()))?;
+        target.as_path()
+    } else {
+        path
+    };
     let mut notebook = if path.exists() {
         read(path)?
     } else {
         template::blank()
     };
+    let previous = notebook["cells"].as_array().unwrap();
+    let previous_by_id: HashMap<_, _> =
+        ids::for_cells(previous).into_iter().zip(previous).collect();
     let cells = parsed
         .iter()
-        .enumerate()
-        .map(|(index, cell)| {
-            let mut saved = as_json_cell(cell, old_cell(&notebook, &cell.id, index))?;
+        .map(|cell| {
+            let mut saved = as_json_cell(cell, previous_by_id.get(&cell.id).copied())?;
             results::apply(cell, &mut saved, results);
             Ok(saved)
         })
         .collect::<Result<Vec<_>>>()?;
     notebook["cells"] = json!(cells);
+    if notebook["nbformat_minor"]
+        .as_u64()
+        .is_some_and(|minor| minor < 5)
+    {
+        notebook["nbformat_minor"] = json!(5);
+    }
     let bytes = serde_json::to_vec_pretty(&notebook)?;
     let parent = path.parent().context("notebook path has no parent")?;
     let temp = parent.join(format!(
@@ -121,77 +129,4 @@ pub fn create(path: &Path) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::notebook::open;
-
-    #[test]
-    fn round_trip_preserves_metadata_and_unchanged_output() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("a.ipynb");
-        fs::write(
-            &path,
-            serde_json::to_vec(&json!({
-                "cells": [{"cell_type":"code","id":"abc","metadata":{"tag":"keep"},
-                    "source":["print(42)"], "execution_count":3,
-                    "outputs":[{"output_type":"stream","name":"stdout","text":"42\n"}]}],
-                "metadata":{"custom":"keep"},"nbformat":4,"nbformat_minor":5
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let lines = open(&path).unwrap();
-        save(&path, &lines).unwrap();
-        let after = read(&path).unwrap();
-        assert_eq!(after["metadata"]["custom"], "keep");
-        assert_eq!(after["cells"][0]["outputs"][0]["text"], "42\n");
-        let mut edited = lines;
-        edited[1] = "print(43)".to_owned();
-        save(&path, &edited).unwrap();
-        assert_eq!(read(&path).unwrap()["cells"][0]["outputs"], json!([]));
-    }
-
-    #[test]
-    fn old_notebook_without_ids_keeps_markdown_and_code_outputs() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("old.ipynb");
-        fs::write(&path, serde_json::to_vec(&json!({
-            "cells": [
-                {"cell_type":"markdown","metadata":{"keep":true},"source":["# Heading\n", "text"]},
-                {"cell_type":"code","metadata":{},"source":"2 + 2", "execution_count":1,
-                 "outputs":[{"output_type":"execute_result","data":{"text/plain":"4"},"metadata":{},"execution_count":1}]}
-            ],
-            "metadata":{},"nbformat":4,"nbformat_minor":4
-        })).unwrap()).unwrap();
-        let lines = open(&path).unwrap();
-        assert_eq!(lines[1], "# # Heading");
-        save(&path, &lines).unwrap();
-        let saved = read(&path).unwrap();
-        assert_eq!(saved["cells"][0]["metadata"]["keep"], true);
-        assert_eq!(saved["cells"][1]["outputs"][0]["data"]["text/plain"], "4");
-    }
-
-    #[test]
-    fn adding_a_blank_line_clears_stale_output() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("blank.ipynb");
-        for source in ["raise ValueError('old')", "raise ValueError('old')\n"] {
-            fs::write(
-                &path,
-                serde_json::to_vec(&json!({
-                    "cells":[{"cell_type":"code","id":"cell-1","metadata":{},
-                        "source":source,"execution_count":1,
-                        "outputs":[{"output_type":"error","ename":"ValueError",
-                            "evalue":"old","traceback":["ValueError: old"]}]}],
-                    "metadata":{},"nbformat":4,"nbformat_minor":5
-                }))
-                .unwrap(),
-            )
-            .unwrap();
-            let mut lines = open(&path).unwrap();
-            lines.push(String::new());
-            save(&path, &lines).unwrap();
-            assert_eq!(read(&path).unwrap()["cells"][0]["outputs"], json!([]));
-        }
-    }
-}
+mod tests;

@@ -2,12 +2,14 @@
 
 The Rust worker owns notebook data and execution.
 Neovim calls it through a line-delimited JSON protocol and presents cell source and results.
+Start at `lua/notebook_rs/init.lua` for editor commands or `src/protocol.rs` for worker requests.
 
 | Module | Responsibility |
 | --- | --- |
 | `src/notebook/percent.rs` | Parse cell markers and select code cells |
 | `src/notebook/edit.rs` | Insert, delete, and move cells |
 | `src/notebook/store.rs` | Preserve notebook JSON and save atomically |
+| `src/notebook/ids.rs` | Assign stable IDs to legacy cells during open and save |
 | `src/notebook/results.rs` | Apply results only to matching source |
 | `src/notebook/view.rs` | Convert stored notebooks into editable lines |
 | `src/runtime/local.rs` | Persistent Python process for each notebook |

@@ -7,7 +7,7 @@
 A standalone Neovim notebook extension with a Rust worker.
 It opens editable Jupyter `.ipynb` notebooks as Python cell text, keeps a local Python kernel alive between runs, and can execute cells in a named Google Colab CLI session.
 
-Read the [Russian user guide](docs/guide.ru.md) for setup, output navigation, keybindings, and where to find each feature.
+See [Documentation and development](#documentation-and-development) for examples, troubleshooting, and the contributor guide.
 
 ## Requirements
 
@@ -207,28 +207,16 @@ Image links in the output panel can render inside Neovim when a compatible Markd
 The installed Colab CLI may exit with code zero for a Python exception, so the extension reads the CLI's output notebook to detect failed cells.
 `RunAll` stops at the first failed cell.
 
-## Architecture and tests
+## Documentation and development
 
-`src/notebook/` owns notebook parsing, cell edits, and preservation of unchanged cell metadata and outputs.
-`src/runtime/` owns the persistent local Python process and Colab CLI subprocesses.
-`src/protocol.rs` exposes a line-delimited JSON protocol to the minimal Lua Neovim interface in `lua/notebook_rs/`.
-
-`cargo test --locked` covers notebook round trips, local kernel state and plots, Colab file operations, authentication failure, and the worker talking to a fake Colab CLI.
-The fake CLI exits successfully after a Python error, matching the installed CLI, so tests prove structured error detection.
-The headless Neovim smoke tests cover execution, cell edits, insertion above and below, navigation shortcuts, Colab actions, inline tracebacks, and numeric cell targets.
-GitHub Actions runs formatting, Clippy, tests, a release build, and the Neovim smoke tests on macOS and Linux.
-The Colab test uses a fake CLI so CI never needs account credentials or allocates a paid runtime.
-
-## Documentation and examples
-
-Run `:checkhealth notebook_rs` to diagnose worker, Python, and Colab CLI discovery.
-Open `:help nvim-notebook-rs` for command, option, shortcut, and Colab references.
-Use `:help notebook-rs-completion` to configure Pyright and a local analysis interpreter with PyTorch, TensorFlow, and other libraries for notebook completion and parameter hints.
-Try [the local walkthrough](examples/local.ipynb) or [the Colab walkthrough](examples/colab.ipynb).
-Copy [the lazy.nvim example](examples/lazy.lua) into your plugin configuration.
-See [troubleshooting](docs/troubleshooting.md), [architecture](docs/architecture.md), [releases](docs/releases.md), and [contributing](CONTRIBUTING.md).
-Run the same checks as CI with `python3 scripts/verify.py`.
-Released native workers are available through [GitHub Releases](https://github.com/Sal-sal-sal/nvim-notebook-rs/releases).
+| Topic | Start here |
+| --- | --- |
+| Getting started | [Local notebook](examples/local.ipynb), [Colab notebook](examples/colab.ipynb), [lazy.nvim example](examples/lazy.lua) |
+| Using the plugin | `:help nvim-notebook-rs`, [Russian user guide](docs/guide.ru.md) |
+| Diagnosing a problem | `:checkhealth notebook_rs`, [Troubleshooting](docs/troubleshooting.md) |
+| How the code is organized | [Architecture overview](docs/architecture.md) |
+| Building, testing, and reporting bugs | [Contributing guide](CONTRIBUTING.md) |
+| Installing a prebuilt worker | [Release guide](docs/releases.md), [GitHub Releases](https://github.com/Sal-sal-sal/nvim-notebook-rs/releases) |
 
 ## License
 

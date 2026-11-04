@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 
-use super::store;
+use super::{ids, store};
 
 pub struct OpenView {
     pub lines: Vec<String>,
@@ -38,15 +38,12 @@ pub fn open_view(path: &Path) -> Result<OpenView> {
     let notebook = store::read(path)?;
     let mut lines = Vec::new();
     let mut results = Vec::new();
-    for (index, cell) in notebook["cells"].as_array().unwrap().iter().enumerate() {
+    let cells = notebook["cells"].as_array().unwrap();
+    for (cell, id) in cells.iter().zip(ids::for_cells(cells)) {
         let kind = cell["cell_type"].as_str().context("missing cell_type")?;
         if !matches!(kind, "code" | "markdown" | "raw") {
             bail!("unsupported cell type: {kind}");
         }
-        let id = cell["id"]
-            .as_str()
-            .map(str::to_owned)
-            .unwrap_or_else(|| format!("cell-{}", index + 1));
         let source = store::source(cell)?;
         lines.push(format!("# %% [{kind}] id={id}"));
         lines.extend(shown_lines(kind, &source));
