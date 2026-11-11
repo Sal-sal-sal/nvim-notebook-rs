@@ -1,3 +1,4 @@
+mod completion;
 mod journal;
 mod notebook;
 mod protocol;
@@ -53,6 +54,7 @@ fn worker_main() -> Result<()> {
 fn main() -> Result<()> {
     match std::env::args().nth(1).as_deref() {
         Some("worker") => worker_main(),
+        Some("library-docs") => completion::main(),
         Some("--version") => {
             println!("{}", env!("CARGO_PKG_VERSION"));
             Ok(())

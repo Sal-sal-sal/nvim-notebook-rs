@@ -11,6 +11,7 @@ function M.attach(buf)
   end
   local server = options.server
   if #vim.lsp.get_clients({ bufnr = buf, name = server }) > 0 then
+    require("notebook_rs.completion.paths").refresh(buf)
     return
   end
   local native = vim.lsp.config and vim.lsp.config[server]
@@ -30,6 +31,7 @@ function M.attach(buf)
   if interpreter then
     config.settings.python.pythonPath = interpreter
   end
+  require("notebook_rs.completion.paths").configure(config, buf)
   config.capabilities = config.capabilities or vim.lsp.protocol.make_client_capabilities()
   if package.loaded["blink.cmp"] then
     config.capabilities = require("blink.cmp").get_lsp_capabilities(config.capabilities)
@@ -44,6 +46,7 @@ function M.attach(buf)
 end
 
 function M.setup()
+  require("notebook_rs.completion").setup()
   local group = vim.api.nvim_create_augroup("NotebookRsLsp", { clear = true })
   vim.api.nvim_create_autocmd({ "BufEnter", "InsertEnter", "FileType" }, {
     group = group,

@@ -13,10 +13,42 @@ parameter signatures from this language server.
 With blink.cmp, enable its signature support to show parameters while typing.
 Tab accepts a selected completion when configured by your completion plugin.
 
+LIGHTWEIGHT LIBRARY DOCUMENTATION
+
+Missing imported libraries automatically get a separate static documentation
+cache. It provides signatures, docstrings, and available return types without
+installing the runtime library, its dependencies, or model weights.
+The plugin reads a small wheel from PyPI and keeps only analysis interfaces.
+If the main wheel is too large, types-{package} and {package}-stubs are tried.
+No downloaded library code or install hooks are executed.
+Existing local libraries and project modules take precedence.
+The cache is reused offline and attached through Pyright extraPaths.
+
+:NotebookLibraryDocs refreshes documentation for the current notebook imports.
+Automatic requests are debounced; ready documentation updates Pyright in place.
+Configure the feature with:
+>
+    require("notebook_rs").setup({
+      python_lsp = { documentation = {
+        auto_download = true,
+        max_download_mb = 25,
+        packages = { transformers = "transformers==5.22.2" },
+      } },
+    })
+<
+auto_download defaults to true; false keeps manual refresh and cached docs.
+packages maps import names to PyPI names or package==version.
+Without a mapping, the import name and latest stable release are used initially.
+Pin the version to match the selected runtime when necessary.
+cache overrides stdpath("cache")/notebook-rs/library-docs.
+Binary packages without suitable lightweight interfaces may remain unsupported.
+Generated interfaces preserve annotations rather than infer every runtime type.
+See docs/library-docs.ru.md for examples and limitations.
+
 LIBRARY ENVIRONMENT
 
 Pyright needs access to installed library code or type stubs.
-For Colab execution, use a local analysis environment with the same libraries.
+For complete library analysis, use a local environment with the same libraries.
 Configure the interpreter used for analysis:
 >
     require("notebook_rs").setup({
@@ -26,7 +58,8 @@ Configure the interpreter used for analysis:
       },
     })
 <
-Install torch, torchvision, tensorflow, numpy, and other required libraries there.
+Full library installation remains optional for analysis when cached interfaces
+are sufficient. Execution still requires libraries in the selected runtime.
 Torchvision is a separate package; installing torch alone does not provide it.
 If torchvision runs in Colab but Pyright reports an unresolved import, install a
 compatible torchvision version in the local python_lsp.python_path environment.
@@ -42,7 +75,10 @@ To disable the plugin's language-server attachment:
 <
 VERIFICATION
 
-CI checks real Pyright completion and signature help with the Python math module.
+CI checks real Pyright completion, signatures, and hover against an offline
+package index, including automatic extraction, typed return values, caching,
+size limits, and confirmation that the runtime library remains uninstalled.
+The Python math completion check is also retained.
 The optional scripts/verify_ml_completion.lua checks installed ML library APIs.
 The optional scripts/verify_ml_ui.py checks blink.cmp popups with a user config
 and requires pynvim in the Python environment running the script.

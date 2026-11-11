@@ -31,6 +31,7 @@ def verify(env):
         "NOTEBOOK_RS_ROOT": str(ROOT),
         "NOTEBOOK_RS_BIN": str(ROOT / "target/release/nvim-notebook-rs"),
     })
+    run([sys.executable, "-m", "unittest", "discover", "-s", "tests/completion", "-v"], env, 180)
     tests = sorted((ROOT / "tests").glob("nvim_*.lua"))
     for test in tests:
         if test.name == "nvim_live_colab.lua":

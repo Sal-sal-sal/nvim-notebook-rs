@@ -223,6 +223,8 @@ The Colab test uses a fake CLI so CI never needs account credentials or allocate
 
 Run `:checkhealth notebook_rs` to diagnose worker, Python, and Colab CLI discovery.
 Open `:help nvim-notebook-rs` for command, option, shortcut, and Colab references.
+Missing library imports automatically get a separate cache of signatures and docstrings, without runtime dependencies or model downloads.
+Use `:NotebookLibraryDocs` to refresh it; see the [lightweight library documentation guide](docs/library-docs.ru.md).
 Use `:help notebook-rs-completion` to configure Pyright and a local analysis interpreter with PyTorch, TensorFlow, and other libraries for notebook completion and parameter hints.
 Try [the local walkthrough](examples/local.ipynb) or [the Colab walkthrough](examples/colab.ipynb).
 Copy [the lazy.nvim example](examples/lazy.lua) into your plugin configuration.
